@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\core">
+      <UniqueIdentifier>{332590d0-a257-484a-bbd3-3ed76d669dd6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\targets">
+      <UniqueIdentifier>{f8820bdc-2830-4a82-956d-ffd84e05f0d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\targets\drivers">
+      <UniqueIdentifier>{a600ed8b-de78-445f-bfe5-69cd19a39cc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\utils">
+      <UniqueIdentifier>{df5d4d9d-5eb4-46d9-bd82-b086e9980686}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\targets\checksum">
+      <UniqueIdentifier>{980a0539-985b-4a57-b8d6-4f63b656b31d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\targets\checksum\edc16c39">
+      <UniqueIdentifier>{b3d2ce3c-4f40-49f3-85f5-93b17285b8e7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="namedll.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="event.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\BMW_cluster.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\generic.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\hcs12.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\mpc5566.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\Trionic.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_requests.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_requests_CPU32.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_requests_HCS12.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_requests_JTAG.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_requests_MPC.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\core_worker.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\mpc562.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\utils\utl_md5.c">
+      <Filter>Source Files\core\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\utils\utils.c">
+      <Filter>Source Files\core\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\checksum\edc16c39\csum_16c39.c">
+      <Filter>Source Files\core\targets\checksum\edc16c39</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\checksum\edc16c39\csum_16c39_saab95.c">
+      <Filter>Source Files\core\targets\checksum\edc16c39</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\checksum\checksum.c">
+      <Filter>Source Files\core\targets\checksum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\core\targets\68hc08_uart.c">
+      <Filter>Source Files\core\targets</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Header.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="event.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\drivers\hcs12driver.h">
+      <Filter>Source Files\core\targets\drivers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\drivers\hcs12driver_eeprom.h">
+      <Filter>Source Files\core\targets\drivers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\drivers\TxDriver.bin.h">
+      <Filter>Source Files\core\targets\drivers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\target_descriptors.h">
+      <Filter>Source Files\core\targets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\targets.h">
+      <Filter>Source Files\core\targets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_requests.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_requests_CPU32.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_requests_HCS12.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_requests_JTAG.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_requests_MPC.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\core_worker.h">
+      <Filter>Source Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\utils\utils.h">
+      <Filter>Source Files\core\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\checksum\checksum.h">
+      <Filter>Source Files\core\targets\checksum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\checksum\csum_private.h">
+      <Filter>Source Files\core\targets\checksum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\core\targets\checksum\edc16c39\csum_16c39_private.h">
+      <Filter>Source Files\core\targets\checksum\edc16c39</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lib\LibUsbDotNet.dll" />
+  </ItemGroup>
+</Project>

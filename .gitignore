@@ -1,0 +1,28 @@
+# Build artefacts for the adapter
+/firmware/JTAGNXS/*
+
+# Doing by file type would exclude too much
+bin2header.exe
+testdriver.map
+testdriver.idb
+c39eeprom.map
+c39eeprom.idb
+ppcmd5.map
+ppcmd5.idb
+
+# There's a few "secret" projects in here that are not ready.
+/host/cli/*
+/host/gui/linux
+/host/gui/nix/build*
+
+/host/gui/win/bdmstuff/.vs/*
+/host/gui/win/bdmstuff/bin/*
+/host/gui/win/bdmstuff/dll/*
+!/host/gui/win/bdmstuff/dll/*.dll
+/host/gui/win/bdmstuff/obj/*
+
+/host/gui/win/namedll/Debug/*
+/host/gui/win/namedll/Release/*
+
+
+/host/libusb/*

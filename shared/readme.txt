@@ -1,0 +1,1 @@
+Global command descriptors, commands and responses to commands should all go here.

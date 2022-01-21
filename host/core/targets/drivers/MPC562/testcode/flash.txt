@@ -1,0 +1,112 @@
+# Calling convention calls for this register usage:
+# (I haven't verified gcc since it's a PITA to setup everything to make a functional bare-bones C app)
+# r0: It's that weird register
+# r1: SP
+# r2: TOC
+# r3: First argument, first returned value
+# r4: Second argument, second returned value
+# r5: Third argument.
+# r6: Fourth argument..
+# r10: ..Eight and last argument
+
+// Processor  // Flash
+// 0x00400020 // (0x90) Read signature
+
+// 0x000000A0 // (0x50) Clear status register
+// 0xC54000A8 // (0xFF) Return to read
+
+// 0x00400028 // (0xB0) Suspend Erase/Program
+// 0x004000A0 // (0xD0) Resume Erase/Program
+// 0x00000008 // (0x20) Block Erase
+// 0x00000080 // (0x40) Program
+
+// 0x000000A8 // (0x70) Read status register
+
+chip bit | processor bit
+31 <>  0 |  0 <> 31
+b0    01 | 4000 0000  | bit  1
+b1    02 | 0400 0000  | bit  5
+b2    04 | 0100 0000  | bit  7
+b3    08 | 8000 0000  | bit  0
+
+b4    10 | 0000 0020  | bit 26
+b5    20 | 0000 0008  | bit 28
+b6    40 | 0000 0080  | bit 24
+b7    80 | 0040 0000  | bit  9
+
+     PPC BIT   |  NORMAL
+( 0) 8000 0000 |  0000 0001
+( 1) 4000 0000 |  0000 0002
+( 2) 2000 0000 |  0000 0004
+( 3) 1000 0000 |  0000 0008
+( 4) 0800 0000 |  0000 0010
+( 5) 0400 0000 |  0000 0020
+( 6) 0200 0000 |  0000 0040
+( 7) 0100 0000 |  0000 0080
+( 8) 0080 0000 |  0000 0100
+( 9) 0040 0000 |  0000 0200
+(10) 0020 0000 |  0000 0400
+(11) 0010 0000 |  0000 0800
+(12) 0008 0000 |  0000 1000
+(13) 0004 0000 |  0000 2000
+(14) 0002 0000 |  0000 4000
+(15) 0001 0000 |  0000 8000
+(16) 0000 8000 |  0001 0000
+(17) 0000 4000 |  0002 0000
+(18) 0000 2000 |  0004 0000
+(19) 0000 1000 |  0008 0000
+(20) 0000 0800 |  0010 0000
+(21) 0000 0400 |  0020 0000
+(22) 0000 0200 |  0040 0000
+(23) 0000 0100 |  0080 0000
+(24) 0000 0080 |  0100 0000
+(25) 0000 0040 |  0200 0000
+(26) 0000 0020 |  0400 0000
+(27) 0000 0010 |  0800 0000
+(28) 0000 0008 |  1000 0000
+(29) 0000 0004 |  2000 0000
+(30) 0000 0002 |  4000 0000
+(31) 0000 0001 |  8000 0000
+
+# Partition map: (Driver is unaware of this, you have to specify start and length)
+# Number:  0 Size: 0x02000  Range: 0x00000000 - 0x00001FFF
+# Number:  1 Size: 0x02000  Range: 0x00002000 - 0x00003FFF
+# Number:  2 Size: 0x02000  Range: 0x00004000 - 0x00005FFF
+# Number:  3 Size: 0x02000  Range: 0x00006000 - 0x00007FFF
+
+# Number:  4 Size: 0x02000  Range: 0x00008000 - 0x00009FFF
+# Number:  5 Size: 0x02000  Range: 0x0000A000 - 0x0000BFFF
+# Number:  6 Size: 0x02000  Range: 0x0000C000 - 0x0000DFFF
+# Number:  7 Size: 0x02000  Range: 0x0000E000 - 0x0000FFFF
+
+# Number:  8 Size: 0x10000  Range: 0x00010000 - 0x0001FFFF
+# Number:  9 Size: 0x10000  Range: 0x00020000 - 0x0002FFFF
+# Number: 10 Size: 0x10000  Range: 0x00030000 - 0x0003FFFF
+# Number: 11 Size: 0x10000  Range: 0x00040000 - 0x0004FFFF
+# Number: 12 Size: 0x10000  Range: 0x00050000 - 0x0005FFFF
+# Number: 13 Size: 0x10000  Range: 0x00060000 - 0x0006FFFF
+# Number: 14 Size: 0x10000  Range: 0x00070000 - 0x0007FFFF
+# Number: 15 Size: 0x10000  Range: 0x00080000 - 0x0008FFFF
+# Number: 16 Size: 0x10000  Range: 0x00090000 - 0x0009FFFF
+# Number: 17 Size: 0x10000  Range: 0x000A0000 - 0x000AFFFF
+# Number: 18 Size: 0x10000  Range: 0x000B0000 - 0x000BFFFF
+# Number: 19 Size: 0x10000  Range: 0x000C0000 - 0x000CFFFF
+# Number: 20 Size: 0x10000  Range: 0x000D0000 - 0x000DFFFF
+# Number: 21 Size: 0x10000  Range: 0x000E0000 - 0x000EFFFF
+# Number: 22 Size: 0x10000  Range: 0x000F0000 - 0x000FFFFF
+# Number: 23 Size: 0x10000  Range: 0x00100000 - 0x0010FFFF
+# Number: 24 Size: 0x10000  Range: 0x00110000 - 0x0011FFFF
+# Number: 25 Size: 0x10000  Range: 0x00120000 - 0x0012FFFF
+# Number: 26 Size: 0x10000  Range: 0x00130000 - 0x0013FFFF
+# Number: 27 Size: 0x10000  Range: 0x00140000 - 0x0014FFFF
+# Number: 28 Size: 0x10000  Range: 0x00150000 - 0x0015FFFF
+# Number: 29 Size: 0x10000  Range: 0x00160000 - 0x0016FFFF
+# Number: 30 Size: 0x10000  Range: 0x00170000 - 0x0017FFFF
+# Number: 31 Size: 0x10000  Range: 0x00180000 - 0x0018FFFF
+# Number: 32 Size: 0x10000  Range: 0x00190000 - 0x0019FFFF
+# Number: 33 Size: 0x10000  Range: 0x001A0000 - 0x001AFFFF
+# Number: 34 Size: 0x10000  Range: 0x001B0000 - 0x001BFFFF
+# Number: 35 Size: 0x10000  Range: 0x001C0000 - 0x001CFFFF
+# Number: 36 Size: 0x10000  Range: 0x001D0000 - 0x001DFFFF
+# Number: 37 Size: 0x10000  Range: 0x001E0000 - 0x001EFFFF
+# Number: 38 Size: 0x10000  Range: 0x001F0000 - 0x001FFFFF

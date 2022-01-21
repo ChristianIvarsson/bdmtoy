@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2048
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bdmstuff", "bdmstuff.csproj", "{79430524-7A27-49EB-BBD9-68521E3CDF82}"
+	ProjectSection(ProjectDependencies) = postProject
+		{76CB438F-5177-4690-BB17-8251C415287E} = {76CB438F-5177-4690-BB17-8251C415287E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "namedll", "..\namedll\namedll.vcxproj", "{76CB438F-5177-4690-BB17-8251C415287E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79430524-7A27-49EB-BBD9-68521E3CDF82}.Debug|x86.ActiveCfg = Debug|x86
+		{79430524-7A27-49EB-BBD9-68521E3CDF82}.Debug|x86.Build.0 = Debug|x86
+		{79430524-7A27-49EB-BBD9-68521E3CDF82}.Release|x86.ActiveCfg = Release|x86
+		{79430524-7A27-49EB-BBD9-68521E3CDF82}.Release|x86.Build.0 = Release|x86
+		{76CB438F-5177-4690-BB17-8251C415287E}.Debug|x86.ActiveCfg = Debug|Win32
+		{76CB438F-5177-4690-BB17-8251C415287E}.Debug|x86.Build.0 = Debug|Win32
+		{76CB438F-5177-4690-BB17-8251C415287E}.Release|x86.ActiveCfg = Release|Win32
+		{76CB438F-5177-4690-BB17-8251C415287E}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EA445604-181D-451F-8931-1F2784D79B85}
+	EndGlobalSection
+EndGlobal

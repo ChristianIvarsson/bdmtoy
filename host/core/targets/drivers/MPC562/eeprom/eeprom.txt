@@ -1,0 +1,49 @@
+
+r3: 1 = Write, 0 = Read
+r5: Buffer
+r6: noBytes
+
+r7 - r10: Temp
+
+
+r14: Internal flash pointer
+r15: 0x305100
+
+r16 - 23: Temporary page storage read from buffer
+r24 - 31: Temporary page storage read from eeprom
+
+0x305140: Receive buffer 16
+0x305180: Send buffer    16
+0x3051C0: Queue commands  8
+
+Queue command:
+0x88: Keep cs low, read/send 8 bits
+0xC8: Keep cs low, read/send 16 bits
+0x28: Release cs, read/send 8 bits
+0x68: Release cs, read/send 16 bits
+0x_8: Device number, cs3
+
+Read page queue:
+[ 0]0x88: 0x03
+[ 1]0xC8: Address
+[ 2]0xC8: 0 : d[ 0]
+[ 3]0xC8: 0 : d[ 2]
+
+[ 4]0xC8: 0 : d[ 4]
+[ 5]0xC8: 0 : d[ 6]
+[ 6]0xC8: 0 : d[ 8]
+[ 7]0xC8: 0 : d[10]
+
+[ 8]0xC8: 0 : d[12]
+[ 9]0xC8: 0 : d[14]
+[ A]0xC8: 0 : d[16]
+[ B]0xC8: 0 : d[18]
+
+[ C]0xC8: 0 : d[20]
+[ D]0xC8: 0 : d[22]
+[ E]0xC8: 0 : d[24]
+[ F]0xC8: 0 : d[26]
+
+[10]0xC8: 0 : d[28]
+[11]0x68: 0 : d[30]
+

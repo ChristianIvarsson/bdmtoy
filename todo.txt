@@ -1,0 +1,3 @@
+Oldschool bdm:
+Look over "turbodump", it leaves a runt command: "patched"
+
