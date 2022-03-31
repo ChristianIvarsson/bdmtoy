@@ -1,5 +1,8 @@
 # Build artefacts for the adapter
 /firmware/JTAGNXS/*
+!/firmware/JTAGNXS/Debug/bin/JTAGNXS.bin
+!/firmware/JTAGNXS/Debug/bin/JTAGNXS.elf
+!/firmware/JTAGNXS/Debug/bin/JTAGNXS.hex
 
 # Doing by file type would exclude too much
 bin2header.exe
