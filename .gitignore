@@ -1,7 +1,5 @@
 # Build artefacts for the adapter
 /firmware/JTAGNXS/*
-!/firmware/JTAGNXS/Debug
-/firmware/JTAGNXS/Debug/*
 !/firmware/JTAGNXS/Debug/bin
 /firmware/JTAGNXS/Debug/bin/*
 !/firmware/JTAGNXS/Debug/bin/JTAGNXS.*
@@ -22,8 +20,6 @@ ppcmd5.idb
 
 /host/gui/win/bdmstuff/.vs/*
 /host/gui/win/bdmstuff/bin/*
-!/host/gui/win/bdmstuff/bin/x86
-/host/gui/win/bdmstuff/bin/x86/*
 !/host/gui/win/bdmstuff/bin/x86/Release
 /host/gui/win/bdmstuff/bin/x86/Release/*
 !/host/gui/win/bdmstuff/bin/x86/Release/*.exe
