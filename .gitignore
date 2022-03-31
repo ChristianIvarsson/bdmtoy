@@ -1,6 +1,8 @@
 # Build artefacts for the adapter
-/firmware/JTAGNXS/JTAGNXS.elf.xcodeproj/*
-/firmware/JTAGNXS/Debug/obj/*
+/firmware/JTAGNXS/*
+!/firmware/JTAGNXS/Debug
+/firmware/JTAGNXS/Debug/*
+!/firmware/JTAGNXS/Debug/bin
 /firmware/JTAGNXS/Debug/bin/*
 !/firmware/JTAGNXS/Debug/bin/JTAGNXS.*
 
