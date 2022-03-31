@@ -1,4 +1,5 @@
 # Build artefacts for the adapter
+!/firmware/JTAGNXS
 /firmware/JTAGNXS/*
 !/firmware/JTAGNXS/Debug/bin/JTAGNXS.*
 
