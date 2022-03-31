@@ -20,6 +20,12 @@ ppcmd5.idb
 
 /host/gui/win/bdmstuff/.vs/*
 /host/gui/win/bdmstuff/bin/*
+!/host/gui/win/bdmstuff/bin/x86
+/host/gui/win/bdmstuff/bin/x86/*
+!/host/gui/win/bdmstuff/bin/x86/Release
+/host/gui/win/bdmstuff/bin/x86/Release/*
+!/host/gui/win/bdmstuff/bin/x86/Release/*.exe
+!/host/gui/win/bdmstuff/bin/x86/Release/*.dll
 /host/gui/win/bdmstuff/dll/*
 !/host/gui/win/bdmstuff/dll/*.dll
 /host/gui/win/bdmstuff/obj/*
