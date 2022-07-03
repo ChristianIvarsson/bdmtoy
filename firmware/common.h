@@ -61,10 +61,11 @@
 // #define P_bootcfg1 0,  0
 
 // I'd much rather have these private but the assisted functions / TAP_shared prevents that
-uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
-volatile uint32_t usbrec;
 uint16_t usb_sendData(const void *buffer);
 void     usb_receiveData();
 void     InitSPI(const spi_cfg_t *cfg);
+
+extern volatile uint32_t usbrec;
+extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
 
 #endif

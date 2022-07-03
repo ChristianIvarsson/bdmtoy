@@ -2,7 +2,7 @@
 #ifndef __TAPSHARED_H__
 #define __TAPSHARED_H__
 
-#include "../../common.h"
+#include "../common.h"
 #include "BDM_HC12/BDMs_high.h"
 #include "BDM_OLD/BDMo_high.h"
 #include "BDM_NEW/BDMn_high.h"
@@ -37,10 +37,12 @@ enum TAP_GlobalBits
 };
 */
 
-struct {
+typedef struct {
     uint32_t DriveFreq; // ..
 
-} TAP_Configs;
+} TAP_Configs_t;
+
+extern TAP_Configs_t TAP_Configs;
 
 ////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Pay close attention! /////////////////////////////////////
@@ -53,7 +55,7 @@ struct {
 
 /// Dynamic pointers to functions.
 // "TAP_ResetState" takes length into account so there is no need to patch it in case new pointers are put in here.
-struct {
+typedef struct {
 
     void *DYN_TargetInitPort_pntr;
 
@@ -78,6 +80,8 @@ struct {
     void *DYN_ExecIns_pntr;
     void *DYN_RelTar_pntr;
 
-} TAP_funcPntrs;
+} TAP_funcPntrs_t;
+
+extern TAP_funcPntrs_t TAP_funcPntrs;
 
 #endif

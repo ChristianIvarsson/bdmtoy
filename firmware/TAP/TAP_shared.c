@@ -1,5 +1,8 @@
 #include "TAP_shared.h"
 
+TAP_funcPntrs_t TAP_funcPntrs;
+TAP_Configs_t TAP_Configs;
+
 #define HostFreq     48000000.0f
 
 /// Template. You can pretty much use "in" however you want but "out" must ALWAYS contain these two 16-bit words:
@@ -65,7 +68,7 @@ uint32_t TAP_calcDelay(const uint32_t inDelay, const float targetTicks, const fl
     float quanta = (HostFreq / TargetFreq) * targetTicks;
 
     if (quanta < inDelay) {
-        printf("TAP_calcDelay(): Unable to meet requirements\n\r");
+        // printf("TAP_calcDelay(): Unable to meet requirements\n\r");
         return 1; // oldbdm is doing the -1 thing. Do not set it to 0
     }
 
@@ -423,7 +426,7 @@ inline static void TAP_ExecuteIns(const uint16_t *in, uint16_t *out) {
 
     // Check Basic things first
     if (!SizeB1) {
-        printf("TAP_ExecuteIns(): Malformed\n\r");
+        // printf("TAP_ExecuteIns(): Malformed\n\r");
         out[0] = RET_MALFORMED;
         return;
     }
@@ -502,7 +505,7 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
             prescaler = SPI_BaudRatePrescaler_2;
             break;
         default:
-            printf("Unknown speed parameter\n\r");
+            // printf("Unknown speed parameter\n\r");
             out[0] = RET_NOTSUP;
             return;
     }
@@ -534,7 +537,7 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
             TAP_ConfigureNEXUS(3, prescaler);
             break;
         default:
-            printf("Unknown type parameter\n\r");
+            // printf("Unknown type parameter\n\r");
             out[0] = RET_NOTSUP;
             return;
     }
@@ -558,13 +561,13 @@ static void TAP_ReleaseTarget(const uint16_t *in, uint16_t *out) {
 
 // Return not installed if code/host tries to use something that has not been set up
 static void DUMMY_NotInstalled(const uint16_t *in, uint16_t *out) {
-    printf("Dummy notinst\n\r");
+    // printf("Dummy notinst\n\r");
     out[0] = RET_NOTINS;
 }
 
 // future use. Return not supported if host tries to use a feature not supported by current TAP engine
 static void DUMMY_NotSupported(const uint16_t *in, uint16_t *out) {
-    printf("Dummy nosup\n\r");
+    // printf("Dummy nosup\n\r");
     out[0] = RET_NOTSUP;
 }
 

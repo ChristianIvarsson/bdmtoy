@@ -460,7 +460,7 @@ static uint16_t NEXUS3_FetchData(const uint8_t bitSz, uint16_t Count, void *out)
     NEXUS3_ReadCommand(7, &RWCS);   // Read back, check status bits
     if (RWCS.ERR)
     {
-        printf("NEXUS3_FetchData: ERR!\n");
+        // printf("NEXUS3_FetchData: ERR!\n");
         return RWCS.DV ? RET_RESTRICMEM : RET_GENERICERR;
     }
 
@@ -809,25 +809,25 @@ static uint16_t NEXUS_HowMuchFailed()
     // Only print stuff that is out of the ordinary
     if (!OnCE_OSR.DEBUG) {
         fail = RET_UNKERROR;
-        printf("DEBUG  : %u\n\r", OnCE_OSR.DEBUG);
+        // printf("DEBUG  : %u\n\r", OnCE_OSR.DEBUG);
     }if (OnCE_OSR.STOP) {
         fail = RET_UNKERROR;
-        printf("STOP   : %u\n\r", OnCE_OSR.STOP);
+        // printf("STOP   : %u\n\r", OnCE_OSR.STOP);
     }if (OnCE_OSR.HALT) {
         fail = RET_UNKERROR;
-        printf("HALT   : %u\n\r", OnCE_OSR.HALT);
+        // printf("HALT   : %u\n\r", OnCE_OSR.HALT);
     }if (OnCE_OSR.RESET) {
         fail = RET_UNKERROR;
-        printf("RESET  : %u\n\r", OnCE_OSR.RESET);
+        // printf("RESET  : %u\n\r", OnCE_OSR.RESET);
     }if (OnCE_OSR.CHKSTOP) {
         fail = RET_UNKERROR;
-        printf("CHKSTOP: %u\n\r", OnCE_OSR.CHKSTOP);
+        // printf("CHKSTOP: %u\n\r", OnCE_OSR.CHKSTOP);
     }if (OnCE_OSR.ERR) {
         fail = RET_GENERICERR;
-        printf("ERR    : %u\n\r", OnCE_OSR.ERR);
+        // printf("ERR    : %u\n\r", OnCE_OSR.ERR);
     }if (!OnCE_OSR.MCLK) {
         fail = RET_UNKERROR;
-        printf("MCLK   : %u\n\r", OnCE_OSR.MCLK);
+        // printf("MCLK   : %u\n\r", OnCE_OSR.MCLK);
     }
 
     return fail;
@@ -896,13 +896,13 @@ static uint16_t NEXUS_ExecIns_wRecData(const uint32_t instruction, const uint32_
         return RET_NOTSUP;
 
     if ((OnCE_CPUSCR.CTL))
-        printf("CTL: %08X\n\r",(OnCE_CPUSCR.CTL));
+        // printf("CTL: %08X\n\r",(OnCE_CPUSCR.CTL));
 
     // It's a couple of layers down but NEXUS1_ReadCPUSCR will trigger an update of OSR
     retval = NEXUS_HowMuchFailed();
     if (retval != RET_OK)
     {
-        printf("NEXUS_ExecIns_wRecData(): Ins %08X Fail @ %08X\n\r", instruction, PC);
+        // printf("NEXUS_ExecIns_wRecData(): Ins %08X Fail @ %08X\n\r", instruction, PC);
     }
 
     return retval;

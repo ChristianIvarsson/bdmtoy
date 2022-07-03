@@ -11,6 +11,10 @@
 #include "usb_desc.h"
 #include "usb_pwr.h"
 
+volatile uint32_t usbrec = 0;
+uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
+
+
 void EP1_IN_Callback() {}
 void SOF_Callback() {}
 
@@ -50,7 +54,7 @@ void usb_receiveData()
 
     if (usbrec > 0)
     {
-        printf("usb_receiveData(): Locked\n\r");
+        // printf("usb_receiveData(): Locked\n\r");
         // Adapter is busy.
         // Implement Mutex locking of USB output and answer host
         // With exception of "DO_ABANDON"; kill everything.
@@ -281,7 +285,7 @@ int main()
 	    }
 	}
 
-	printf("What the f*ck are you doing!?\n\r");
+	// printf("What the f*ck are you doing!?\n\r");
 	return 0;
 }
 

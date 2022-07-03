@@ -15,6 +15,7 @@ static uint16_t BDMNEW_ReadGPR (const uint32_t Reg, void *out);
 static uint16_t BDMNEW_WriteGPR(const uint32_t Reg, const void *in);
 static uint32_t newbdm_delay = 0;
 
+/*
 static void printRegSumamry()
 {
     for (uint16_t i = 0; i < 32; i++) {
@@ -23,7 +24,7 @@ static void printRegSumamry()
         printf("%08X ", tmpr);
         if ((i&3)==3) printf(" (%2u - %2u)\n\r", i-3, i);
     }
-}
+}*/
 
 // I wondered why kSec contained garbage while pointK was correct...
 #pragma GCC push_options
@@ -39,7 +40,7 @@ void PrintTimeTaken(const uint32_t uSecs, const uint32_t noK)
     kSec /= 1000;
 
     // Sorry about the warning. Can't do much..
-    printf("%u K took %u uSecs (%u mS) (%u.%03u KB/s)\n", (uint16_t) noK, uSecs, (uint16_t)((uint32_t)uSecs/1000), (uint16_t)kSec, (uint16_t)pointK);
+    // printf("%u K took %u uSecs (%u mS) (%u.%03u KB/s)\n", (uint16_t) noK, uSecs, (uint16_t)((uint32_t)uSecs/1000), (uint16_t)kSec, (uint16_t)pointK);
 }
 #pragma GCC pop_options
 
@@ -189,8 +190,8 @@ static uint32_t BDMNEW_Shift(const uint32_t Header, const uint8_t noBits, uint32
     // This is just here while debugging..
     if (i < runtBits)
     {
-        for (uint32_t e = 0; e < 5; e++)
-            printf("BDMNEW_Shift(): Target has more bits!\n\r");
+        // for (uint32_t e = 0; e < 5; e++)
+        // printf("BDMNEW_Shift(): Target has more bits!\n\r");
     }
 
     TDI_LO;
@@ -428,27 +429,27 @@ static uint16_t BDMNEW_WriteSPR(const uint32_t Reg, const void *in)
     // Backup r0
     retval = BDMNEW_ReadGPR(0, &r0);
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to read r0\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to read r0\n\r");
         return retval;
     }
 
     retval = BDMNEW_WriteGPR(0, in);
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to write r0 (1)\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to write r0 (1)\n\r");
         return retval;
     }
 
     // Move from r0 to selected spr
     retval = BDMNEW_ExecIns( PPC_be_MTSPR_R0(Reg) );
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
         return retval;
     }
 
     // Restore r0
     retval = BDMNEW_WriteGPR(0, &r0);
     if (retval != RET_OK)
-        printf("BDMNEW_ReadSPR(): Failed to restore r0 (2)\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to restore r0 (2)\n\r");
 
     return retval;
 }
@@ -461,28 +462,28 @@ static uint16_t BDMNEW_ReadSPR(const uint32_t Reg, void *out)
     // Backup r0
     retval = BDMNEW_ReadGPR(0, &r0);
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to read r0 (1)\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to read r0 (1)\n\r");
         return retval;
     }
 
     // Move from selected spr to r0
     retval = BDMNEW_ExecIns( PPC_be_MFSPR_R0(Reg) );
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
         return retval;
     }
 
     // Read r0
     retval = BDMNEW_ReadGPR(0, out);
     if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to read r0 (2)\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to read r0 (2)\n\r");
         return retval;
     }
 
     // Restore r0
     retval = BDMNEW_WriteGPR(0, &r0);
     if (retval != RET_OK)
-        printf("BDMNEW_ReadSPR(): Failed to restore r0\n\r");
+        // printf("BDMNEW_ReadSPR(): Failed to restore r0\n\r");
 
     return retval;
 }
@@ -1041,7 +1042,7 @@ void BDMNEW_AssistFlash(const uint16_t *in, uint16_t *out)
 
         // Driver says something went wrong..
         else if (regRead != 1) {
-            printRegSumamry();
+            // printRegSumamry();
             TAP_UpdateStatus(RET_DRIVERFAIL, retval);
             return;
         }
