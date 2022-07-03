@@ -1,20 +1,19 @@
 
+# Editor settings etc
 .*
 
-# Build artefacts for the adapter
-/firmware/JTAGNXS/*
-!/firmware/JTAGNXS/Debug/bin
-/firmware/JTAGNXS/Debug/bin/*
-!/firmware/JTAGNXS/Debug/bin/JTAGNXS.*
+# Build artefacts
+*.o
+*.idb
+*.map
+
+# Do not include user settings for qt
+*.pro.user
+*.pro.user*
+
 
 # Doing by file type would exclude too much
 bin2header.exe
-testdriver.map
-testdriver.idb
-c39eeprom.map
-c39eeprom.idb
-ppcmd5.map
-ppcmd5.idb
 
 # There's a few "secret" projects in here that are not ready.
 /host/cli/*
