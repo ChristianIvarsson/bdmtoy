@@ -896,7 +896,9 @@ static uint16_t NEXUS_ExecIns_wRecData(const uint32_t instruction, const uint32_
         return RET_NOTSUP;
 
     if ((OnCE_CPUSCR.CTL))
+    {
         // printf("CTL: %08X\n\r",(OnCE_CPUSCR.CTL));
+    }
 
     // It's a couple of layers down but NEXUS1_ReadCPUSCR will trigger an update of OSR
     retval = NEXUS_HowMuchFailed();

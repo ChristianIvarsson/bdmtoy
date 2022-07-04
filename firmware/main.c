@@ -13,7 +13,7 @@
 
 volatile uint32_t usbrec = 0;
 uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
-
+uint16_t sendBuffer[(ADAPTER_BUFzOUT/2)+2];
 
 void EP1_IN_Callback() {}
 void SOF_Callback() {}
@@ -96,7 +96,7 @@ void usb_receiveData()
     }
 }
 
-void SPI_PreinitDMA()
+static void SPI_PreinitDMA()
 {
     DMA_InitTypeDef DMA_InitStructure; //Variable used to setup the DMA
 
@@ -161,7 +161,7 @@ void InitSPI(const spi_cfg_t *cfg)
     SPI_PreinitDMA();
 }
 
-void init_Timeout()
+static void init_Timeout()
 {
     NVIC_InitTypeDef NVIC_InitStructure;
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -178,7 +178,7 @@ void init_Timeout()
     NVIC_Init(&NVIC_InitStructure);
 }
 
-void init_debugUart()
+static void init_debugUart()
 {
     GPIO_InitTypeDef  GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
@@ -202,7 +202,7 @@ void init_debugUart()
     USART_Cmd(USART2, ENABLE);
 }
 
-void RCC_Configuration()
+static void RCC_Configuration()
 {
     RCC_APB2PeriphClockCmd(0x0101D, ENABLE); // GPIO A,B,C, SPI, AFIO for SPI
 
@@ -211,10 +211,9 @@ void RCC_Configuration()
     RCC_APB1PeriphClockCmd(0x24005, ENABLE); // Usart 2, spi, spi afio, more spi
 }
 
-void InitSys()
+static void InitSys()
 {
     RCC_Configuration();
-    // uart_init1();
     init_debugUart(); // Debug uart
     init_Timeout();
 
@@ -233,8 +232,11 @@ void InitSys()
 int main()
 {
     InitSys();
-
     Set_System();
+#ifdef BIGBOARD
+    SetPinDir(2, 12, 1);
+    USB_DIS_LO;
+#endif
     Set_USBClock();
     USB_Interrupts_Config();
     USB_Init();
@@ -243,7 +245,6 @@ int main()
 	TAP_ResetState();
 
     uint8_t  *byteptr = (uint8_t  *) &receiveBuffer[0];
-	usbrec = 0;
 
 	// uint32_t old = DWT->CYCCNT;
 	// TAP_PreciseDelay(100);

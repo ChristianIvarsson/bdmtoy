@@ -46,6 +46,11 @@
 #define RDY_RD  (((GPIO_TypeDef *) (GPIOA_BASE + (privPORT*0x400)))->IDR & (1 << privRDY))
 #define RST_RD  (((GPIO_TypeDef *) (GPIOA_BASE + (privPORT*0x400)))->IDR & (1 << privRST))
 
+// Usb disconnect. PC12
+// It's only used on the big board I use to debug the code. 
+#define USB_DIS_HI  (((GPIO_TypeDef *) (GPIOA_BASE + (3*0x400)))->BSRR = (1 << 12))
+#define USB_DIS_LO  (((GPIO_TypeDef *) (GPIOA_BASE + (3*0x400)))->BRR  = (1 << 12))
+
 // Macros for HAL access
 #define P_JCMP     privPORT, privJCM
 #define P_TMS      privPORT, privTMS
@@ -60,12 +65,7 @@
 // #define P_bootcfg0 0,  0
 // #define P_bootcfg1 0,  0
 
-// I'd much rather have these private but the assisted functions / TAP_shared prevents that
-uint16_t usb_sendData(const void *buffer);
-void     usb_receiveData();
-void     InitSPI(const spi_cfg_t *cfg);
-
-extern volatile uint32_t usbrec;
-extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
+extern void     InitSPI(const spi_cfg_t *cfg);
+extern uint16_t usb_sendData(const void *buffer);
 
 #endif

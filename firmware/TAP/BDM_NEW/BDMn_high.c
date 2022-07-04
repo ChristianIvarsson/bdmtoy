@@ -449,8 +449,9 @@ static uint16_t BDMNEW_WriteSPR(const uint32_t Reg, const void *in)
     // Restore r0
     retval = BDMNEW_WriteGPR(0, &r0);
     if (retval != RET_OK)
+    {
         // printf("BDMNEW_ReadSPR(): Failed to restore r0 (2)\n\r");
-
+    }
     return retval;
 }
 
@@ -483,8 +484,9 @@ static uint16_t BDMNEW_ReadSPR(const uint32_t Reg, void *out)
     // Restore r0
     retval = BDMNEW_WriteGPR(0, &r0);
     if (retval != RET_OK)
+    {
         // printf("BDMNEW_ReadSPR(): Failed to restore r0\n\r");
-
+    }
     return retval;
 }
 

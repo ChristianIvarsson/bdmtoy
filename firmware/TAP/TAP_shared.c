@@ -1,7 +1,11 @@
 #include "TAP_shared.h"
 
-TAP_funcPntrs_t TAP_funcPntrs;
-TAP_Configs_t TAP_Configs;
+extern volatile uint32_t usbrec;
+
+extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
+extern uint16_t sendBuffer[(ADAPTER_BUFzOUT/2)+2];
+extern void     usb_receiveData();
+
 
 #define HostFreq     48000000.0f
 
@@ -14,8 +18,37 @@ static void DUMMY_NotSupported(const uint16_t *in, uint16_t *out);
 static void DUMMY_NotInstalled(const uint16_t *in, uint16_t *out);
 static void TAP_SetAllNotsupported();
 
-// Figure out why it takes a nosedive whenever this is moved to main and forwarded as a pointer..
-static uint16_t sendBuffer[(ADAPTER_BUFzOUT/2) + 2];
+/// Dynamic pointers to functions.
+// "TAP_ResetState" takes length into account so there is no need to patch it in case new pointers are put in here.
+static struct {
+    void *DYN_TargetInitPort_pntr;
+
+    void *DYN_TargetReset_pntr;
+    void *DYN_TargetReady_pntr;
+
+    void *DYN_TargetStart_pntr;
+    void *DYN_TargetStop_pntr;
+    void *DYN_TargetStatus_pntr;
+
+    void *DYN_WriteRegister_pntr;
+    void *DYN_ReadRegister_pntr;
+
+    void *DYN_WriteMemory_pntr;
+    void *DYN_ReadMemory_pntr;
+
+    void *DYN_FillMemory_pntr;
+    void *DYN_DumpMemory_pntr;
+
+    void *DYN_AssistFlash_pntr;
+
+    void *DYN_ExecIns_pntr;
+    void *DYN_RelTar_pntr;
+} TAP_funcPntrs;
+
+static struct {
+    uint32_t DriveFreq;
+
+} TAP_Configs;
 
 /// To adapter:
 // Header    : [total len, words], [no. payloads]
