@@ -1,5 +1,4 @@
-STARTUP(build/startup.o)
-ENTRY(main)
+OUTPUT_FORMAT ("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 
 MEMORY {
     flash (rx ) : ORIGIN = 0x08000000, LENGTH = 64K
