@@ -597,7 +597,7 @@ Retry:
     // This is max what the adapter can achieve more or less. 1-2~ host cycles to spare!
     // pllclk = 2 * osc * ((synr + 1) / (refdv + 1))
     // (4194000 * 2) * 2 = 16776000 pll and 8388000 bus
-    config.Custom  = 4194000  * (SIDMULTI + 1) ;
+    config.Custom  = 4194000 * (SIDMULTI + 1) ;
 
     if ( wrk_sendOneshot( TAP_WriteByte(0x0034, SIDMULTI) ) != RET_OK )
     {
@@ -644,7 +644,7 @@ uint32_t initSID95_MY0405()
 
     config.Type           = TAP_IO_BDMS;
     config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 6000000 / 2; //4194000/2;
+    config.Custom         = 4194000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
 
@@ -727,7 +727,7 @@ Retry:
     // This is max what the adapter can achieve more or less. 1-2~ host cycles to spare!
     // pllclk = 2 * osc * ((synr + 1) / (refdv + 1))
     // (4194000 * 2) * 2 = 16776000 pll and 8388000 bus
-    config.Custom  = /*4194000*/ 6000000  * (SIDMULTI + 1) ;
+    config.Custom  = 4194000 * (SIDMULTI + 1) ;
 
 
     if ( wrk_sendOneshot( TAP_WriteByte(0x0034, SIDMULTI) ) != RET_OK )
