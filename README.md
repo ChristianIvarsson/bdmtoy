@@ -1,7 +1,7 @@
 # nonameadapter
 
 ! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT !
-Firmwares built / uploaded before 21/9/2022 must be updated to function with the current host code/apps.
+* Firmwares built / uploaded before 21/9/2022 must be updated to function with the current host code/apps.
 
 
 
