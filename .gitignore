@@ -20,7 +20,9 @@ bin2header.exe
 /firmware_mk2
 
 # There's a few "secret" projects in here that are not ready.
-/host/cli/*
+/host/cli/junk*
+/host/cli/both/junk*
+/host/cli/shared/junk*
 /host/gui/linux
 /host/gui/nix/build*
 
