@@ -12,7 +12,7 @@
 
 /// Size descriptors, TAP commands
 #define TAP_ReadCMD_sz      (cmd_hdr_sz +  4) // Read/Dump data request
-#define TAP_Config_sz       (cmd_hdr_sz +  5)
+#define TAP_Config_sz       (cmd_hdr_sz +  4)
 #define TAP_ReadReg_sz      (cmd_hdr_sz +  2)
 #define TAP_WriteReg_sz     (cmd_hdr_sz +  3)
 #define TAP_AssistCMD_sz    (cmd_hdr_sz + 10)
@@ -54,8 +54,7 @@ typedef struct {
 // TAP configuration
 typedef struct {
     uint16_t       Type;
-    uint16_t       Speed;
-    uint32_t       Custom; // Just ignore this if not setting a custom speed
+    uint32_t       Frequency;
     cfgmask_host_t cfgmask;
 } TAP_Config_host_t;
 
@@ -69,7 +68,7 @@ typedef struct {
 */
 
 typedef struct {
-    uint16_t prescaler;
+    uint32_t frequency;
     uint16_t polarity;
     uint16_t phase;
     uint16_t order;

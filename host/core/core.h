@@ -64,7 +64,7 @@ typedef const struct
     
     // TAP parameters
     const uint16_t TAP_drive;      // Which TAP interface to use
-    const uint16_t TAP_speed;      // Speed of said interface
+    const uint32_t TAP_frequency;  // Frequency of said interface
     
     // Human junk
     const char     *name[1];        // Target name (Pointer, ignore the size. Just don't use memcpy or some stupid stuff)

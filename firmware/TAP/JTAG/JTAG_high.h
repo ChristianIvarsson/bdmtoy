@@ -1,7 +1,7 @@
 #ifndef __JTAG__
 #define __JTAG__
 
-void JTAG_setup         (const float TargetFreq, const uint16_t prescaler);
+void JTAG_setup         (const float TargetFreq);
 void JTAG_InitPort      (const uint16_t *in, uint16_t *out);
 
 void JTAG_TargetReset   (const uint16_t *in, uint16_t *out); // Target reset / set pins to the correct state

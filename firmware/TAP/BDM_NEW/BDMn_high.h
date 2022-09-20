@@ -2,7 +2,7 @@
 #define BDMNEW_H_
 
 
-void BDMNEW_setup         (const float TargetFreq, const uint16_t prescaler);
+void BDMNEW_setup         (const float TargetFreq);
 void BDMNEW_InitPort      (const uint16_t *in, uint16_t *out);
 
 // void BDMNEW_TargetReady   (const uint16_t *in, uint16_t *out);

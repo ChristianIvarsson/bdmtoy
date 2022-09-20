@@ -2,16 +2,18 @@
 # I use several gcc toolchains depending on what I do. You should be able to just comment out this and use the default
 # Keep in mind that -O2 us quite agressive and has caused me a lot of trouble with some. You might want to go down to -O1 at the expense of a slightly slower adapter
 GCCPATH="D:/ARM_GCC/6 2017-q2-update/bin/"
+BASENAME=arm-none-eabi
 
-CC=$(GCCPATH)arm-none-eabi-gcc
-CPP=$(GCCPATH)arm-none-eabi-c++
-LD=$(GCCPATH)arm-none-eabi-ld
-OBJCOPY=$(GCCPATH)arm-none-eabi-objcopy
-SIZE=$(GCCPATH)arm-none-eabi-size
+CC=$(GCCPATH)$(BASENAME)-gcc
+CPP=$(GCCPATH)$(BASENAME)-c++
+LD=$(GCCPATH)$(BASENAME)-ld
+OBJCOPY=$(GCCPATH)$(BASENAME)-objcopy
+SIZE=$(GCCPATH)$(BASENAME)-size
+GDB=$(GCCPATH)$(BASENAME)-gdb
 
 TARGPROC=-mcpu=cortex-m3 -mthumb
 
-SHAREDC=-ffunction-sections -O2 -Wall -nostartfiles
+SHAREDC=-ffunction-sections -O2 -Wall -nostartfiles -g3 -gdwarf-2
 
 # Include development makefile if present
 -include ../.private/firmdevflags
@@ -34,11 +36,12 @@ HEADERPATHS=\
 
 CFLAGS= $(TARGPROC) $(SHAREDC) -std=gnu99 $(CODEFLAGS) $(HEADERPATHS)
 
-.PHONY: all flash
+.PHONY: all flash debug
 
 all : firmware
 
 flash : all
+debug : startdebug
 
 TAPOBJS=\
 	obj/TAP_shared.o \
@@ -229,6 +232,12 @@ firmware : $(ALLOBJS)
 
 flash :
 	openocd -f flash.cfg
+
+startdebug :
+	@$(GDB)
+	openocd -f debug.cfg
+
+
 
 clean :
 	@echo Cleaning..

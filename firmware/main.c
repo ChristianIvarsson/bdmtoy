@@ -138,6 +138,7 @@ static void SPI_PreinitDMA()
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx | SPI_I2S_DMAReq_Tx, ENABLE);
 }
 
+// SPI2 is apb1 (which is ran at 24 MHz (sysfreq / 2))
 void InitSPI(const spi_cfg_t *cfg)
 {
     SPI_I2S_DeInit(SPI2);
@@ -152,7 +153,24 @@ void InitSPI(const spi_cfg_t *cfg)
     SPI_InitStructure.SPI_DataSize          = cfg->size     ? SPI_DataSize_16b : SPI_DataSize_8b;
     SPI_InitStructure.SPI_CPOL              = cfg->polarity ? SPI_CPOL_High    : SPI_CPOL_Low;
     SPI_InitStructure.SPI_CPHA              = cfg->phase    ? SPI_CPHA_2Edge   : SPI_CPHA_1Edge;
-    SPI_InitStructure.SPI_BaudRatePrescaler = cfg->prescaler;
+
+    if (cfg->frequency >= (24000000 / 2))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+    else if (cfg->frequency >= (24000000 / 4))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+    else if (cfg->frequency >= (24000000 / 8))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
+    else if (cfg->frequency >= (24000000 / 16))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+    else if (cfg->frequency >= (24000000 / 32))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+    else if (cfg->frequency >= (24000000 / 64))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
+    else if (cfg->frequency >= (24000000 / 128))
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;
+    else
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
+
     SPI_Init(SPI2, &SPI_InitStructure);
 
     SPI_CalculateCRC(SPI2, DISABLE);

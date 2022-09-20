@@ -328,11 +328,11 @@ void BDMOLD_TargetStatus(const uint16_t *in, uint16_t *out)
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 // Internal configuration; Public
-void BDMOLD_setup(const float TargetFreq, const uint16_t prescaler)
+void BDMOLD_setup(const float TargetFreq)
 {
     // Hardware accelerated by SPI
     spi_cfg_t cfg;
-    cfg.prescaler = prescaler;
+    cfg.frequency = (uint32_t)TargetFreq;
     cfg.polarity  = SPI_HIGH;
     cfg.phase     = SPI_SECOND;
     cfg.order     = SPI_MSB;

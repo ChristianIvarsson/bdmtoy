@@ -197,7 +197,7 @@ uint32_t initTrionic5()
     uint32_t retval;
 
     config.Type           = TAP_IO_BDMOLD;
-    config.Speed          = TAP_SPEED_FAST;
+	config.Frequency      = (32768 / 4);
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
 	core_castText("Init Trionic 5x");
@@ -252,8 +252,7 @@ uint32_t initTrionic5()
 		return retval;
 	}
 
-
-    config.Speed = TAP_SPEED_6MHZ;
+    config.Frequency = 6000000;
     return wrk_sendOneshot( TAP_SetInterface(config) );
 }
 
@@ -265,7 +264,7 @@ uint32_t initTrionic7()
 	uint32_t retval;
 
 	config.Type = TAP_IO_BDMOLD;
-	config.Speed = TAP_SPEED_FAST;
+    config.Frequency = 1000000;
 	config.cfgmask.Endian = TAP_BIGENDIAN;
 
 	core_castText("Init Trionic 7");
@@ -345,9 +344,7 @@ uint32_t initTrionic7()
 		return retval;
 	}
 
-
-
-	config.Speed = TAP_SPEED_6MHZ;
+    config.Frequency = 6000000;
 	return wrk_sendOneshot(TAP_SetInterface(config));
 }
 
@@ -357,7 +354,7 @@ uint32_t initT8main()
     uint32_t retval;
 
     config.Type           = TAP_IO_BDMOLD;
-    config.Speed          = TAP_SPEED_MEDIUM;
+    config.Frequency      = 1000000;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();
@@ -391,7 +388,7 @@ uint32_t initT8main()
         return retval;
     }
 
-    config.Speed = TAP_SPEED_12MHZ;
+    config.Frequency = 12000000;
     return wrk_sendOneshot( TAP_SetInterface(config) );
 }
 
@@ -401,7 +398,7 @@ uint32_t initT8mcp()
     uint32_t retval;
 
     config.Type           = TAP_IO_BDMOLD;
-    config.Speed          = TAP_SPEED_MEDIUM;
+    config.Frequency      = 1000000;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();
@@ -420,7 +417,7 @@ uint32_t initT8mcp()
     }
 
     // Figure out if this is my contraption acting up or if MCP does not like 12 MHz (It should handle it)
-    config.Speed = TAP_SPEED_3MHZ;
+    config.Frequency = 3000000;
 
     wrk_newQueue( TAP_SetInterface(config) );
     wrk_queueReq( TAP_WriteWord(0xFFFB04,   0x10) ); // Rambar

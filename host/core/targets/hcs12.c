@@ -438,8 +438,7 @@ uint32_t initSIU95()
     uint16_t *ptr;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4194000/2;
+    config.Frequency      = 4194000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
     
 Retry:
@@ -519,7 +518,7 @@ Retry:
     // This is max what the adapter can achieve more or less. 1-2~ host cycles to spare!
     // pllclk = 2 * osc * ((synr + 1) / (refdv + 1))
     // (4194000 * 2) * 2 = 16776000 pll and 8388000 bus
-    config.Custom  = 4194000  * (SIDMULTI + 1) ;
+    config.Frequency = 4194000  * (SIDMULTI + 1) ;
 
     if ( wrk_sendOneshot( TAP_WriteByte(0x0034, SIDMULTI) ) != RET_OK )
     {
@@ -559,8 +558,7 @@ uint32_t initBasic_HCS12()
     uint16_t *ptr;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4194000/2;
+    config.Frequency      = 4194000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
     
 Retry:
@@ -597,7 +595,7 @@ Retry:
     // This is max what the adapter can achieve more or less. 1-2~ host cycles to spare!
     // pllclk = 2 * osc * ((synr + 1) / (refdv + 1))
     // (4194000 * 2) * 2 = 16776000 pll and 8388000 bus
-    config.Custom  = 4194000 * (SIDMULTI + 1) ;
+    config.Frequency = 4194000 * (SIDMULTI + 1) ;
 
     if ( wrk_sendOneshot( TAP_WriteByte(0x0034, SIDMULTI) ) != RET_OK )
     {
@@ -643,8 +641,7 @@ uint32_t initSID95_MY0405()
     uint16_t *ptr;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4194000/2;
+    config.Frequency      = 4194000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
 
@@ -727,7 +724,7 @@ Retry:
     // This is max what the adapter can achieve more or less. 1-2~ host cycles to spare!
     // pllclk = 2 * osc * ((synr + 1) / (refdv + 1))
     // (4194000 * 2) * 2 = 16776000 pll and 8388000 bus
-    config.Custom  = 4194000 * (SIDMULTI + 1) ;
+    config.Frequency = 4194000 * (SIDMULTI + 1) ;
 
 
     if ( wrk_sendOneshot( TAP_WriteByte(0x0034, SIDMULTI) ) != RET_OK )
@@ -771,8 +768,7 @@ uint32_t secureEraseHCS12(uint32_t clockFreq)
     uint8_t  tmp;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4000000/2;
+    config.Frequency      = 4000000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     core_castText("You fucked up, didn't you? ;)");

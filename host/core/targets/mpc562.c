@@ -216,7 +216,7 @@ uint32_t initEDC16C39()
     uint32_t divf;
 
     config.Type           = TAP_IO_BDMNEW;
-    config.Speed          = TAP_SPEED_FAST;
+    config.Frequency      = 1000000;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();
@@ -308,7 +308,7 @@ uint32_t initEDC16C39()
 
     //////////////
     // Full blast
-    config.Speed = TAP_SPEED_12MHZ;
+    config.Frequency = 12000000;
     retval = wrk_sendOneshot( TAP_SetInterface(config) );
 
     return retval;

@@ -123,20 +123,6 @@ enum TAP_IO {
   TAP_IO_NEXUS3        = 0x0023, // NEXUS 3 class interface
 };
 
-// TAP_DO_SETINTERFACE, SPEED
-enum TAP_SPEED {
-  TAP_SPEED_SLOW       = 0x0000, // Turd-gear engaged. Slowest possible software transfer.
-  TAP_SPEED_MEDIUM     = 0x0001, // Slightly faster but still bitbanged.
-  TAP_SPEED_FAST       = 0x0002, // Fastest possible bitbanging.
-  TAP_SPEED_CUSTOM     = 0x0003, // Host-defined clock rate.
-
-  TAP_SPEED_0_75MHZ    = 0x0010,
-  TAP_SPEED_1_5MHZ     = 0x0011,
-  TAP_SPEED_3MHZ       = 0x0012,
-  TAP_SPEED_6MHZ       = 0x0013,
-  TAP_SPEED_12MHZ      = 0x0014,
-};
-
 /// Part of TAP_DO_SETINTERFACE, cfgmask
 enum endians 
 {

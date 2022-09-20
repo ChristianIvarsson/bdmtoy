@@ -613,7 +613,7 @@ static uint16_t NEXUS3_Engage()
 // Public functions
 
 // Prepare..
-void NEXUS_setup(const float TargetFreq, const uint16_t prescaler, const uint8_t generation)
+void NEXUS_setup(const float TargetFreq, const uint8_t generation)
 {
     nexusdelay  = TAP_calcDelay(16, 1, TargetFreq);
     nexusmaxgen = generation;

@@ -93,8 +93,7 @@ uint32_t initBMWcluster()
     uint16_t *ptr;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4000000/2;
+    config.Frequency      = 4000000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
     
 Retry:
@@ -117,7 +116,7 @@ Retry:
 
     // Faster for ef sake...
     // This is max what the adapter can achieve more or less. 2 host cycles to spare!
-    config.Custom  = 8000000;
+    config.Frequency = 8000000;
 
     ptr = wrk_requestData( TAP_ReadByte(0x3D) );
     if (!ptr)
@@ -321,8 +320,7 @@ uint32_t secureErase()
     uint8_t  tmp;
 
     config.Type           = TAP_IO_BDMS;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 4194000/2;
+    config.Frequency      = 4194000/2;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     core_castText("Attempting bulk erase..");

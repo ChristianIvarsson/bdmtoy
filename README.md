@@ -1,4 +1,10 @@
 # nonameadapter
+
+! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT ! IMPORTANT !
+Firmwares built before 21/9/2022 must be updated to function with the current host code/apps.
+
+
+
 Info will follow... Basically it's a oldbdm, newbdm, sbdm, jtag, nexus adapter ..thing.
 I got really tired of having a bunch of different adapters for different targets so I started working on one to rule them all.
 

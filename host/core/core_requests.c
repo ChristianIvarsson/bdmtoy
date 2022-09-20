@@ -15,25 +15,24 @@ extern "C" {
 ////////////////////////////////////////////////////////////
 // Setup and toys
 
-// [cmd][cmd + data len, words][type][speed][cfg mask]
+// This request has been changed since earlier firmwares. Sorry about that but it had to be done for future adapters
+// [cmd][cmd + data len, words][type][cfg mask][speed]
 void *TAP_SetInterface(TAP_Config_host_t config)
 {
     static uint16_t arr[TAP_Config_sz];
     
     arr[0] = TAP_DO_SETINTERFACE;
     arr[1] = TAP_Config_sz;
-    
     arr[2] = config.Type;
-    arr[3] = config.Speed;
-    *(uint32_t *) &arr[4] = (config.Speed == TAP_SPEED_CUSTOM) ?  config.Custom : 0; // .."Ooops" Rules are meant to be broken!...
 
-    // Microbob's POS C compiler doesn't behave nicely with packed (nor a lot of other things...)
-    arr[6] = 0;
-    arr[6] |= (config.cfgmask.Endian & 1) << 15;
+	// Microbob's POS C compiler doesn't behave nicely with packed (nor a lot of other things...)
+	arr[3] = 0;
+	arr[3] |= (config.cfgmask.Endian & 1) << 15;
+
+    *(uint32_t *) &arr[4] = config.Frequency; // .."Ooops" Rules are meant to be broken!...
 
     return &arr[0];
 }
-
 
 // [cmd][cmd + data len, words]
 void *TAP_TargetReady()

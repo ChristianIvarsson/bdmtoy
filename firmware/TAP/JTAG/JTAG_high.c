@@ -226,7 +226,7 @@ static uint16_t JTAG_InitPort_int()
 ////////////////////////////////////////////////////////////
 // Public
 
-void JTAG_setup(const float TargetFreq, const uint16_t prescaler)
+void JTAG_setup(const float TargetFreq)
 {   jtagdelay = TAP_calcDelay(16, 1, TargetFreq); }
 void JTAG_InitPort(const uint16_t *in, uint16_t *out)
 {   out[0] = JTAG_InitPort_int(); }

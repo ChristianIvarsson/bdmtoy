@@ -6,7 +6,6 @@ extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
 extern uint16_t sendBuffer[(ADAPTER_BUFzOUT/2)+2];
 extern void     usb_receiveData();
 
-
 #define HostFreq     48000000.0f
 
 /// Template. You can pretty much use "in" however you want but "out" must ALWAYS contain these two 16-bit words:
@@ -74,9 +73,8 @@ typedef struct __attribute((packed)) {
 } cfgmask_adapter_t;
 typedef struct __attribute((packed)) {
     uint16_t       Type;   // Interface type
-    uint16_t       Speed;  // Hardcoded speed settings or custom..
-    uint32_t       Custom; // ..if custom, this contains actual frequency
     cfgmask_host_t cfgmask;
+    uint32_t       Frequency; 
 } TAP_Config_adapter_t;
 
 void TAP_InitPins()
@@ -162,10 +160,10 @@ void TAP_UpdateStatus(const uint16_t status, const uint16_t flag)
 ////////////////////////////////////////////////////////////
 // Config: Set internals to selected interface
 
-inline static void TAP_ConfigureBDM_OLD(const uint16_t prescaler)
+inline static void TAP_ConfigureBDM_OLD()
 {
     // printf("Entered TAP_ConfigureBDMOLD()\n\r");
-    BDMOLD_setup(TAP_Configs.DriveFreq, prescaler);
+    BDMOLD_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &BDMOLD_InitPort;
     TAP_funcPntrs.DYN_TargetReady_pntr    = &BDMOLD_TargetReady;
     TAP_funcPntrs.DYN_TargetReset_pntr    = &BDMOLD_TargetReset;
@@ -207,10 +205,10 @@ inline static void TAP_ConfigureBDM_HCS12()
     TAP_funcPntrs.DYN_ReadRegister_pntr   = &BDMHCS12_ReadRegister;
 }
 
-inline static void TAP_ConfigureJTAG(const uint16_t prescaler)
+inline static void TAP_ConfigureJTAG()
 {
     // printf("Entered TAP_ConfigureJTAG()\n\r");
-    JTAG_setup(TAP_Configs.DriveFreq, prescaler);
+    JTAG_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &JTAG_InitPort;
     TAP_funcPntrs.DYN_TargetReady_pntr    = &JTAG_TargetReady;
     TAP_funcPntrs.DYN_TargetReset_pntr    = &JTAG_TargetReset;
@@ -219,10 +217,10 @@ inline static void TAP_ConfigureJTAG(const uint16_t prescaler)
     TAP_funcPntrs.DYN_ReadRegister_pntr   = &JTAG_ReadRegister;
 }
 
-inline static void TAP_ConfigureNEXUS(const uint8_t generation, const uint16_t prescaler)
+inline static void TAP_ConfigureNEXUS(const uint8_t generation)
 {
     // printf("Entered TAP_ConfigureNEXUS()\n\r");
-    NEXUS_setup(TAP_Configs.DriveFreq, prescaler, generation);
+    NEXUS_setup(TAP_Configs.DriveFreq, generation);
     TAP_funcPntrs.DYN_TargetReady_pntr    = &NEXUS_TargetReady;
 
     TAP_funcPntrs.DYN_WriteMemory_pntr    = &NEXUS_WriteMemory;
@@ -234,10 +232,10 @@ inline static void TAP_ConfigureNEXUS(const uint8_t generation, const uint16_t p
     TAP_funcPntrs.DYN_ExecIns_pntr        = &NEXUS_ExecuteIns;
 }
 
-inline static void TAP_ConfigureBDM_NEW(const uint16_t prescaler)
+inline static void TAP_ConfigureBDM_NEW()
 {
     // printf("Entered TAP_ConfigureBDM_NEW()\n\r");
-    BDMNEW_setup(TAP_Configs.DriveFreq, prescaler);
+    BDMNEW_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &BDMNEW_InitPort;
     TAP_funcPntrs.DYN_TargetReset_pntr    = &BDMNEW_TargetReset;
     // TAP_funcPntrs.DYN_TargetReady_pntr    = &BDMNEW_TargetReady;
@@ -480,8 +478,6 @@ static void TAP_Releasehack(const uint16_t *in, uint16_t *out)
 inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
 {
     TAP_Config_adapter_t * adt = (TAP_Config_adapter_t * ) &in[1];
-    uint16_t prescaler = SPI_BaudRatePrescaler_256;
-    // printf("Entered TAP_SetInterface()\n\r");
 
     // Reset internal state
     TAP_ResetState();
@@ -497,59 +493,18 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
         return;
     }
 
-
     // Load relevant parameters _BEFORE_ setting interface since we need them
     // NTS: Since SPI2 is driven by APB1, max is (cpuclk / 2) / divider.
     // Thanks for mapping SPI1 to pins that are not 5v tolerant, ST
-    switch (adt->Speed)
-    {
-        case TAP_SPEED_SLOW:
-            TAP_Configs.DriveFreq = 93750;
-            break;
-        case TAP_SPEED_MEDIUM:
-            TAP_Configs.DriveFreq = 187500;
-            prescaler = SPI_BaudRatePrescaler_128;
-            break;
-        case TAP_SPEED_FAST:
-            TAP_Configs.DriveFreq = 375000;
-            prescaler = SPI_BaudRatePrescaler_64;
-            break;
-        case TAP_SPEED_CUSTOM:
-            TAP_Configs.DriveFreq = adt->Custom;
-            break;
-        case TAP_SPEED_0_75MHZ:
-            TAP_Configs.DriveFreq = 750000;
-            prescaler = SPI_BaudRatePrescaler_32;
-            break;
-        case TAP_SPEED_1_5MHZ:
-            TAP_Configs.DriveFreq = 1500000;
-            prescaler = SPI_BaudRatePrescaler_16;
-            break;
-        case TAP_SPEED_3MHZ:
-            TAP_Configs.DriveFreq = 3000000;
-            prescaler = SPI_BaudRatePrescaler_8;
-            break;
-        case TAP_SPEED_6MHZ:
-            TAP_Configs.DriveFreq = 6000000;
-            prescaler = SPI_BaudRatePrescaler_4;
-            break;
-        case TAP_SPEED_12MHZ:
-            TAP_Configs.DriveFreq = 12000000;
-            prescaler = SPI_BaudRatePrescaler_2;
-            break;
-        default:
-            // printf("Unknown speed parameter\n\r");
-            out[0] = RET_NOTSUP;
-            return;
-    }
+    TAP_Configs.DriveFreq = adt->Frequency;
 
     switch (adt->Type)
     {
         case TAP_IO_BDMOLD:
-            TAP_ConfigureBDM_OLD(prescaler);
+            TAP_ConfigureBDM_OLD();
             break;
         case TAP_IO_BDMNEW:
-            TAP_ConfigureBDM_NEW(prescaler);
+            TAP_ConfigureBDM_NEW();
             break;
         case TAP_IO_BDMS:
             TAP_ConfigureBDM_HCS12();
@@ -558,16 +513,16 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
             TAP_ConfigureUARTMON();
             break;
         case TAP_IO_JTAG:
-            TAP_ConfigureJTAG(prescaler);
+            TAP_ConfigureJTAG();
             break;
         case TAP_IO_NEXUS1:
-            TAP_ConfigureNEXUS(1, prescaler);
+            TAP_ConfigureNEXUS(1);
             break;
         case TAP_IO_NEXUS2:
-            TAP_ConfigureNEXUS(2, prescaler);
+            TAP_ConfigureNEXUS(2);
             break;
         case TAP_IO_NEXUS3:
-            TAP_ConfigureNEXUS(3, prescaler);
+            TAP_ConfigureNEXUS(3);
             break;
         default:
             // printf("Unknown type parameter\n\r");

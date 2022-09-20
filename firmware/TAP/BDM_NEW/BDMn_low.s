@@ -129,7 +129,7 @@
     ldr    r7, [sp, #8 ]
     str    r7, [r2, #0 ]
 
-     # Disable Channel 5 (Tx)
+    # Disable Channel 5 (Tx)
     ldr    r7, [sp, #16]
     str    r7, [r2, #20]
 
@@ -375,7 +375,7 @@ StillBusy:
     and    r7, r5
     bne StillBusy
 
-     # Disable Channel 5 (Tx)
+    # Disable Channel 5 (Tx)
     ldr    r7, [sp, #16]
     str    r7, [r2, #20]
 

@@ -795,11 +795,11 @@ void BDMNEW_TargetStart(const uint16_t *in, uint16_t *out)
 void BDMNEW_TargetStatus(const uint16_t *in, uint16_t *out)
 {   out[0] = BDMNEW_FreezeStatus_int(&out[2]), out[1] = 3; }
 
-void BDMNEW_setup(const float TargetFreq, const uint16_t prescaler)
+void BDMNEW_setup(const float TargetFreq)
 {
     // Hardware accelerated by SPI
     spi_cfg_t cfg;
-    cfg.prescaler = prescaler;
+    cfg.frequency = (uint32_t)TargetFreq;
     cfg.polarity  = SPI_LOW;
     cfg.phase     = SPI_FIRST;
     cfg.order     = SPI_MSB;
@@ -1136,6 +1136,9 @@ void BDMNEW_ReleaseTarg(const uint16_t *in, uint16_t *out)
 // Toys
 
 /*
+extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
+extern uint16_t sendBuffer[(ADAPTER_BUFzOUT/2)+2];
+
 static uint16_t MPC562Init()
 {
     // *F*ck you, watchdog!*
@@ -1178,7 +1181,7 @@ void MPCBDMTEST()
 
     uint16_t tmeeep;
     BDMNEW_FreezeStatus_int(&tmeeep);
-    return;
+    // return;
 
     if (MPC562Init() != RET_OK)
     {

@@ -28,7 +28,7 @@ trgTemplate Target_Trionic52 =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_6MHZ
+  TAP_IO_BDMOLD, 6000000
   , "Trionic 5.2"
   , "MC68332, CPU32"
 };
@@ -42,7 +42,7 @@ trgTemplate Target_Trionic55 =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_6MHZ
+  TAP_IO_BDMOLD, 6000000
   , "Trionic 5.5"
   , "MC68332, CPU32"
 };
@@ -57,7 +57,7 @@ trgTemplate Target_Trionic57 =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_6MHZ
+  TAP_IO_BDMOLD,  6000000
   , "Trionic 5 512K (You don't have this)"
   , "MC68332, CPU32 (With a whopping 512K of FLASH!)"
 };
@@ -71,7 +71,7 @@ trgTemplate Target_Trionic7 =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_6MHZ
+  TAP_IO_BDMOLD,  6000000
   , "Trionic 7"
   , "MC68332 derivative, CPU32"
 };
@@ -85,7 +85,7 @@ trgTemplate Target_Trionic8_main =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_12MHZ
+  TAP_IO_BDMOLD, 12000000
   , "Trionic 8; Main"
   , "MC68377, CPU32x"
 };
@@ -99,7 +99,7 @@ trgTemplate Target_Trionic8_mcp =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMOLD, TAP_SPEED_12MHZ
+  TAP_IO_BDMOLD, 12000000
   , "Trionic 8; MCP"
   , "MC68F375, CPU32"
 };
@@ -116,7 +116,7 @@ trgTemplate Target_SID_MY0405 =
   0                 , &dumpGenericBE2,
   0                 ,
   // &debghcs12        ,
-  TAP_IO_BDMS, TAP_SPEED_CUSTOM
+  TAP_IO_BDMS, (4194000 / 2)
   , "9-5 SID, MY04/05"
   , "MC9S12DJ256B, HCS12/CPU12"
 };
@@ -130,7 +130,7 @@ trgTemplate Target_SIU_SAAB95 =
   &writeeepSID95    , &readeepSID95,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMS, TAP_SPEED_CUSTOM
+  TAP_IO_BDMS, (4194000 / 2)
   , "9-5 SIU, MY06+"
   , "MC9S12DG128, HCS12/CPU12"
 };
@@ -144,7 +144,7 @@ trgTemplate Target_BMW_CLUSTERUNK =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMS, TAP_SPEED_CUSTOM
+  TAP_IO_BDMS, (4000000 / 2)
   , "BMW cluster, heck do I know"
   , "XC912DG128CPV8, HCS12/CPU12"
 };
@@ -160,7 +160,7 @@ trgTemplate Target_MPC5566 =
   0                 , 0       ,
   0                 , &dumpSRAM_mpc5566,
   0                 ,
-  TAP_IO_JTAG, TAP_SPEED_CUSTOM
+  TAP_IO_JTAG, 24000000
   , "MPC5566, heck do I know"
   , "MPC5566, PowerPC"
 };
@@ -180,7 +180,7 @@ trgTemplate Target_EDC16C39 =
   &writeeepC39      , &readeepC39,
   0                 , &dumpGenericBE2,
   0                 ,
-  TAP_IO_BDMNEW, TAP_SPEED_CUSTOM
+  TAP_IO_BDMNEW, 12000000
   , "EDC16C39"
   , "Write me.."
 };
@@ -196,13 +196,10 @@ trgTemplate TargetE39MPU =
   0                 , 0       ,
   0                 , 0       ,
   0                 ,
-  TAP_IO_BDMS, TAP_SPEED_CUSTOM
+  TAP_IO_BDMS, ((8000000 / 4) / 256)
   , "ACDelco e39 mpu"
   , "sqc6mdte, 68HC08/CPU08"
 };
-
-
-
 
 const void *supportedTargets[] = 
 {

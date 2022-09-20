@@ -235,8 +235,7 @@ static uint32_t MPC5566_play()
 	uint16_t *ptr;
     uint16_t  readAddress[2];
 
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 24000000;
+    config.Frequency      = 24000000;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();
@@ -481,8 +480,7 @@ uint32_t initMPC5566()
     uint32_t retval;
 
     config.Type           = TAP_IO_JTAG;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = 24000000;
+    config.Frequency      = 24000000;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();

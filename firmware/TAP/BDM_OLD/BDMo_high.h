@@ -1,7 +1,7 @@
 #ifndef BDMOLD_H_
 #define BDMOLD_H_
 
-void BDMOLD_setup         (const float TargetFreq, const uint16_t prescaler);
+void BDMOLD_setup         (const float TargetFreq);
 void BDMOLD_InitPort      (const uint16_t *in, uint16_t *out);
 
 void BDMOLD_TargetReady   (const uint16_t *in, uint16_t *out);

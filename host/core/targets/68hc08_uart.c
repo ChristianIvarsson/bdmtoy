@@ -21,8 +21,7 @@ uint32_t initUARTMON()
     uint32_t retval;
 
     config.Type           = TAP_IO_UARTMON;
-    config.Speed          = TAP_SPEED_CUSTOM;
-    config.Custom         = (8000000/4)/256;
+    config.Frequency      = (8000000/4)/256;
     config.cfgmask.Endian = TAP_BIGENDIAN;
 
     wrk_ResetFault();
