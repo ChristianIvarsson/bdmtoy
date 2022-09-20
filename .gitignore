@@ -15,6 +15,9 @@
 # Doing by file type would exclude too much
 bin2header.exe
 
+# Only working on rp2040, requires a level shifter and only oldschool bdm is kinda working.
+/firmware_mk2
+
 # There's a few "secret" projects in here that are not ready.
 /host/cli/*
 /host/gui/linux
