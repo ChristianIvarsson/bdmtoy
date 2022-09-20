@@ -493,9 +493,6 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
         return;
     }
 
-    // Load relevant parameters _BEFORE_ setting interface since we need them
-    // NTS: Since SPI2 is driven by APB1, max is (cpuclk / 2) / divider.
-    // Thanks for mapping SPI1 to pins that are not 5v tolerant, ST
     TAP_Configs.DriveFreq = adt->Frequency;
 
     switch (adt->Type)
