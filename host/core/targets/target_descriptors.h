@@ -105,7 +105,7 @@ trgTemplate Target_Trionic8_mcp =
 };
 
 /////////////////
-// HC12 targets
+// HCS targets
 trgTemplate Target_SID_MY0405 =
 { 0x000000, 0x040000,        // FLASH info  (Start, Length)
   0x004000, 0x001000,        // EEPROM info (Start, Length)

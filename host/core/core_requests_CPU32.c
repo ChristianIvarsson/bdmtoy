@@ -8,9 +8,11 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+
 #include "core.h"
 #include "core_worker.h"
 #include "core_requests.h"
+
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 // Register reads

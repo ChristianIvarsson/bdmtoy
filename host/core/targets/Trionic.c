@@ -388,7 +388,7 @@ uint32_t initT8main()
         return retval;
     }
 
-    config.Frequency = 12000000;
+    config.Frequency = 6000000;
     return wrk_sendOneshot( TAP_SetInterface(config) );
 }
 
@@ -408,11 +408,14 @@ uint32_t initT8mcp()
     wrk_queueReq( TAP_TargetReady() );
     wrk_queueReq( CPU32_WriteSREG(CPU32_SREG_SFC, 5) );
     wrk_queueReq( CPU32_WriteSREG(CPU32_SREG_DFC, 5) );
-    wrk_queueReq( TAP_WriteWord(0xFFFA04, 0xD084) ); // Clock
+	// wrk_queueReq( TAP_WriteByte(0xFFFA27,   0x55) );
+	// wrk_queueReq( TAP_WriteByte(0xFFFA27,   0xAA) );
+	wrk_queueReq( TAP_WriteByte(0xFFFA21,      0) ); // Watchdog..
+	wrk_queueReq( TAP_WriteWord(0xFFFA04, 0xD080) ); // Clock (Used to be 0xD084)
     retval = wrk_sendQueue();
     if (retval != RET_OK)
     {
-        core_castText("Failed to init MCP");
+        core_castText("Failed to init MCP stage 1");
         return retval;
     }
 
@@ -420,14 +423,17 @@ uint32_t initT8mcp()
     config.Frequency = 3000000;
 
     wrk_newQueue( TAP_SetInterface(config) );
-    wrk_queueReq( TAP_WriteWord(0xFFFB04,   0x10) ); // Rambar
+    wrk_queueReq( TAP_WriteWord(0xFFF800, 0xC800) ); // CMFI STOP
+    wrk_queueReq( TAP_WriteWord(0xFFF808,      0) ); // CMFIBAR
+    wrk_queueReq( TAP_WriteWord(0xFFF80A,      0) );
+    wrk_queueReq( TAP_WriteWord(0xFFF800, 0x4800) ); // CMFI enable
+    wrk_queueReq( TAP_WriteWord(0xFFFB04,   0x10) ); // RAMBAR
     wrk_queueReq( TAP_WriteWord(0xFFFB06,      0) );
     wrk_queueReq( TAP_WriteWord(0xFFFB00,  0x800) ); // Ram ctl
-    wrk_queueReq( TAP_WriteByte(0xFFFA21,      0) ); // Watchdog..
     retval = wrk_sendQueue();
 
     if (retval != RET_OK)
-        core_castText("Failed to init MCP");
+        core_castText("Failed to init MCP stage 2");
 
     return retval;
 }

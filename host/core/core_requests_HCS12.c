@@ -8,16 +8,20 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+
 #include "core.h"
 #include "core_worker.h"
 #include "core_requests.h"
 #include "core_requests_HCS12.h"
 
 // Effing weird controller...
-void **HCS12_ReadBDMAddress(uint8_t Address) {
+void **HCS12_ReadBDMAddress(uint8_t Address)
+{
 	return TAP_ReadByte(0x1FF00 + Address);
 }
-void **HCS12_WriteBDMAddress(uint8_t Address, uint8_t Data) {
+
+void **HCS12_WriteBDMAddress(uint8_t Address, uint8_t Data)
+{
 	return TAP_WriteByte(0x1FF00 + Address, Data);
 }
 

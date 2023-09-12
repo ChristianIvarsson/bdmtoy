@@ -469,8 +469,8 @@ static uint32_t MPC5566_play()
     retval = NEXUS_Step( PPC_be_LWZ(1, 1, 0), 0xC3FC8000);
     if (retval != RET_OK) return retval;
 */
-    // return RET_OK; 
-    return NukeFlash();
+    return RET_OK; 
+    // return NukeFlash();
 }
 
 

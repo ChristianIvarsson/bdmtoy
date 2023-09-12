@@ -107,7 +107,7 @@ static __inline uint32_t wrk_TimeIsTicking(const clock_t secs)
 
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
-// Private stuff: Ballzy code
+// Private stuff
 
 // Call whoever is using this library. It's up to that code to figure out what we actually want
 static void wrk_CallBack()
@@ -118,7 +118,6 @@ static void wrk_CallBack()
     }
 }
 
-// Let's upgrade to steel..
 static __inline void wrk_castProgress()
 {
     uint32_t percentage = (uint32_t)((float)100 * (wrk_state.expectAddr - wrk_state.startAddr) / (float)(wrk_state.lastAddr - wrk_state.startAddr));
@@ -152,7 +151,6 @@ void wrk_castProgPub(float percentage)
     }
 }
 
-// ..Times ten
 static uint32_t wrk_SendArray(void *ptr)
 {
     uint16_t *arr = (uint16_t *) ptr;
@@ -298,6 +296,7 @@ static uint32_t jmp_WriteEepTarget(uint32_t Start, uint32_t Length, void *buffer
 
     return RET_NOTINS;
 }
+
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 // Public parameters
@@ -349,13 +348,15 @@ void wrk_byteSwapBuffer(uint32_t noBytes, uint8_t blockSize)
     }
 }
 
-uint32_t busyOK() {
+uint32_t busyOK()
+{
     uint32_t res = wrk_status.lastFault;
     if (res != RET_OK) return res;
     return wrk_TimeIsTicking(timeoutval);
 }
 
-uint32_t wrk_dumpDone() {
+uint32_t wrk_dumpDone()
+{
     if (wrk_state.expectAddr >= wrk_state.lastAddr)
     {
         wrk_queue.Busy = 0;
@@ -365,16 +366,20 @@ uint32_t wrk_dumpDone() {
 }
 
 // Return 1 if work completed successfully
-uint32_t core_ReturnWorkStatus() {
+uint32_t core_ReturnWorkStatus()
+{
     return (wrk_status.lastFault > 0) ? 0 : wrk_status.workDone;
 }
 
 // Return > 0 if any faults are stored
 uint32_t core_ReturnFaultStatus()
-{ return wrk_status.lastFault; }
+{
+    return wrk_status.lastFault;
+}
 
 // Return pointer to file buffer
-const void *core_ReturnBufferPointer() {
+const void *core_ReturnBufferPointer()
+{
     if (wrk_status.workDone && !wrk_status.lastFault)
         return &filebuffer[0];
     return 0;
@@ -420,13 +425,19 @@ void wrk_ManualProgress()
 // Installation of callback functions
 
 void core_InstallCallback(const void *funcptr)
-{   callptr = (void *)funcptr; }
+{
+    callptr = (void *)funcptr;
+}
 
 void core_InstallProgress(const void *funcptr)
-{   progptr = (void *)funcptr; }
+{
+    progptr = (void *)funcptr;
+}
 
 void core_InstallSendArray(const void *funcptr)
-{   sendptr = (void *)funcptr; }
+{
+    sendptr = (void *)funcptr;
+}
 
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -503,15 +514,12 @@ static __inline void wrk_sendFlashdata(uint16_t *recdata)
     wrk_SendArray(&wrk_queue.ReqArray[0]);
 }
 
-
-
 // [tot len in words (lenword inc)] [cmd][sts] [addr][addr] [Data..]
 static __inline void wrk_recDump(uint16_t *recdata)
 {
     uint16_t *temppntr = (uint16_t *) &recdata[5];
     uint16_t  noWords  = recdata[0] - 5;
     uint_fast16_t  i;
-    
 
     // Come one.. You sent a header but no data?!
     if (recdata[0] < 6)
@@ -678,7 +686,8 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
     if (wrk_queue.Busy == 0)
         return;
 
-    if (wrk_state.multiframe == 0) {
+    if (wrk_state.multiframe == 0)
+    {
         destptr = &temp[0];
         wrk_state.expectLen = recdata[0];
         
@@ -687,7 +696,8 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
     }
 
     // Adapter sent more data than header described.
-    if (recLen > wrk_state.expectLen) {
+    if (recLen > wrk_state.expectLen)
+    {
         wrk_status.lastFault = RET_MALFORMED;
         return;
     }
@@ -705,7 +715,8 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
         
         // Adapter is pissed about something. Abort and check what it wants.
         // This one will steal messages from updatestatus so won't get the whole message. I'll fix it eventually..
-        if (temp[2] != RET_OK) {
+        if (temp[2] != RET_OK)
+        {
             wrk_queue.Busy = 0;
             wrk_status.lastFault = temp[2];
             return;
@@ -715,21 +726,21 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
         {
             // Dump can not be queued. The rest of them, tho, can.. (The package format is also slightly different)
             case TAP_DO_DUMPMEM:
-                wrk_recDump(&temp[0]);
+                wrk_recDump(temp);
                 return;
             
             ///////////////////////////////////
             // Requests sent FROM the adapter
             case TAP_DO_ASSISTFLASH_IN:
-                wrk_sendFlashdata(&temp[0]);
+                wrk_sendFlashdata(temp);
                 return;
             
             case TAP_DO_UPDATESTATUS:
-                wrk_setInternalFlags(&temp[0]);
+                wrk_setInternalFlags(temp);
                 return;
 
             default:
-                wrk_scanQueue(&temp[0]);
+                wrk_scanQueue(temp);
                 wrk_queue.Busy = 0;
                 break;
         }
@@ -1012,7 +1023,7 @@ uint32_t wrk_queueReq(void *payloadptr)
 
 uint32_t wrk_sendQueue()
 {
-    // Precation: Reset pointer and counter for the next queue
+    // Precaution: Reset pointer and counter for the next queue
     wrk_queue.ReqPtr   = &wrk_queue.ReqArray[0];
     wrk_queue.queueLoc = 0;
     
@@ -1170,49 +1181,52 @@ uint16_t *wrk_requestData(void *payloadptr)
     return wrk_returnData(request);
 }
 
-uint32_t wrk_openFile(char *fname)
+uint32_t wrk_openFile(const char *fname)
 {
-    uint8_t *ptr = (uint8_t *) &filebuffer[0];
-    uint32_t filebytes;
-    uint32_t i;
-    FILE *fp;
-
-    fp  = fopen(fname, "rb");
+	size_t fileSize, actRead;
+	FILE * fp  = fopen(fname, "rb");
     
     if (!fp)
         return 0;
 
     fseek(fp, 0L, SEEK_END);
-    filebytes = (uint32_t)ftell(fp);
+	fileSize = ftell(fp);
     rewind(fp);
 
-    for (i = 0; i < filebytes; i++)
-        ptr[i] = (uint8_t)fgetc(fp);
+	if (fileSize == 0 || fileSize > FILEBUFFERsz)
+	{
+		fclose(fp);
+		return 0;
+	}
+
+	actRead = fread(filebuffer, 1, fileSize, fp);
 
     fclose(fp);
 
-    return filebytes;
+    return (uint32_t)(actRead == fileSize) ? fileSize : 0;
 }
 
-uint32_t wrk_writeFile(char *fname, uint32_t noBytes)
+uint32_t wrk_writeFile(const char *fname, const uint32_t noBytes)
 {
-    uint8_t *ptr = (uint8_t *) &filebuffer[0];
-    uint32_t i;
-    FILE *fp;
-
-    fp  = fopen(fname, "wb");
+	size_t actWrite;
+	FILE *fp = fopen(fname, "wb");
     
-    if (!fp || !noBytes || noBytes > FILEBUFFERsz)
+    if (!fp)
         return 0xffff;
+
+	if (noBytes == 0 || noBytes > FILEBUFFERsz)
+	{
+		fclose(fp);
+		return 0xffff;
+	}
 
     rewind(fp);
 
-    for (i = 0; i < noBytes; i++)
-        fputc(ptr[i], fp);
+	actWrite = fwrite(filebuffer, 1, (size_t)noBytes, fp);
 
     fclose(fp);
 
-    return 0;
+    return (actWrite == noBytes) ? 0 : 0xffff;
 }
 
 // Ah.. the silence was nice. Let's restore the whine

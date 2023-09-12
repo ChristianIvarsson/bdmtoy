@@ -50,7 +50,6 @@ void *JTAG_ReadDREG(uint16_t noBits)
     return &arr[0];
 }
 
-
 // Write up to 16 bits, 1 word, to dreg
 void *JTAG_WriteDREG_w(uint16_t noBits, uint16_t Data)
 {
@@ -64,8 +63,6 @@ void *JTAG_WriteDREG_w(uint16_t noBits, uint16_t Data)
 
     return &arr[0];
 }
-
-
 
 #ifdef __cplusplus 
 }

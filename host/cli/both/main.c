@@ -234,6 +234,7 @@ int main(int argc, char *argv[])
     if ( usb_test() != RET_OK ) {
         return 1;
     }
+   
     // One is taken care of by usb_test() in usb_glue.c
     core_InstallProgress(&castprog);
     core_InstallCallback(&callback);

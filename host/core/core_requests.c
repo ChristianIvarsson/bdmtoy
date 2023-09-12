@@ -6,6 +6,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+
 #include "core.h"
 #include "core_worker.h"
 
@@ -114,6 +115,7 @@ void *TAP_ReadRegister(uint16_t Reg, uint16_t Size)
 
     return &arr[0];
 }
+
 void *TAP_ReadRegByte(uint16_t Reg)
 {
     static uint16_t arr[TAP_ReadReg_sz];
@@ -206,7 +208,7 @@ void *TAP_WriteRegDword(uint16_t Reg, uint32_t Data)
 ////////////////////////////////////////////////////////////
 // Memory; Write requests
 
-// // [addr][addr],[len][len], [data]++
+// [addr][addr],[len][len], [data]++
 void *TAP_WriteByte(uint32_t Addr, uint8_t data)
 {
     static uint16_t arr[TAP_ReadCMD_sz + 1];
@@ -509,7 +511,6 @@ void *TAP_Execute_wSentData(uint64_t Ins, uint32_t iSz, uint64_t Dat, uint32_t d
 
     return &data[0];
 }
-
 
 // [ 0 ] [[sizeB][instruction]] [[sizeB][PC]]                   : Just execute this instruction, no returned data.
 // [ 2 ] [[sizeB][instruction]] [[sizeB retdata]] [[sizeB][PC]] : Execute instruction and read back data.
