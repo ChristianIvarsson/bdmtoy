@@ -96,10 +96,9 @@ void TAP_InitPins()
 // inDelay: Number of host cycles already used
 // targetTicks: How many ticks should pass on the target?
 uint32_t TAP_calcDelay(const uint32_t inDelay, const float targetTicks, const float TargetFreq) {
-    float quanta = (HostFreq / TargetFreq) * targetTicks;
+    float quanta = (HostFreq * targetTicks) / TargetFreq;
 
-    if (quanta < inDelay) {
-        // printf("TAP_calcDelay(): Unable to meet requirements\n\r");
+    if (quanta <= inDelay) {
         return 1; // oldbdm is doing the -1 thing. Do not set it to 0
     }
 
@@ -162,7 +161,6 @@ void TAP_UpdateStatus(const uint16_t status, const uint16_t flag)
 
 inline static void TAP_ConfigureBDM_OLD()
 {
-    // printf("Entered TAP_ConfigureBDMOLD()\n\r");
     BDMOLD_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &BDMOLD_InitPort;
     TAP_funcPntrs.DYN_TargetReady_pntr    = &BDMOLD_TargetReady;
@@ -187,7 +185,6 @@ inline static void TAP_ConfigureBDM_OLD()
 
 inline static void TAP_ConfigureBDM_HCS12()
 {
-    // printf("Entered TAP_ConfigureBDM_HCS12()\n\r");
     BDMHCS12_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &BDMHCS12_InitPort;
     TAP_funcPntrs.DYN_TargetReset_pntr    = &BDMHCS12_TargetReset;
@@ -207,7 +204,6 @@ inline static void TAP_ConfigureBDM_HCS12()
 
 inline static void TAP_ConfigureJTAG()
 {
-    // printf("Entered TAP_ConfigureJTAG()\n\r");
     JTAG_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &JTAG_InitPort;
     TAP_funcPntrs.DYN_TargetReady_pntr    = &JTAG_TargetReady;
@@ -219,7 +215,6 @@ inline static void TAP_ConfigureJTAG()
 
 inline static void TAP_ConfigureNEXUS(const uint8_t generation)
 {
-    // printf("Entered TAP_ConfigureNEXUS()\n\r");
     NEXUS_setup(TAP_Configs.DriveFreq, generation);
     TAP_funcPntrs.DYN_TargetReady_pntr    = &NEXUS_TargetReady;
 
@@ -234,7 +229,6 @@ inline static void TAP_ConfigureNEXUS(const uint8_t generation)
 
 inline static void TAP_ConfigureBDM_NEW()
 {
-    // printf("Entered TAP_ConfigureBDM_NEW()\n\r");
     BDMNEW_setup(TAP_Configs.DriveFreq);
     TAP_funcPntrs.DYN_TargetInitPort_pntr = &BDMNEW_InitPort;
     TAP_funcPntrs.DYN_TargetReset_pntr    = &BDMNEW_TargetReset;
@@ -281,7 +275,6 @@ inline static void TAP_ConfigureUARTMON()
 // Target
 
 inline static void TAP_TargetInitPort(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetInitPort()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -290,7 +283,6 @@ inline static void TAP_TargetInitPort(const uint16_t *in, uint16_t *out) {
     TargetInitPortDyn(&in[1], out);
 }
 inline static void TAP_TargetReady(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetReady()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -299,7 +291,6 @@ inline static void TAP_TargetReady(const uint16_t *in, uint16_t *out) {
     TargetRdyDyn(&in[1], out);
 }
 inline static void TAP_TargetReset(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetReset()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -308,7 +299,6 @@ inline static void TAP_TargetReset(const uint16_t *in, uint16_t *out) {
     TargetRstDyn(&in[1], out);
 }
 inline static void TAP_TargetStart(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetStart()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -317,7 +307,6 @@ inline static void TAP_TargetStart(const uint16_t *in, uint16_t *out) {
     TargetStrtDyn(&in[1], out);
 }
 inline static void TAP_TargetStop(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetStop()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -326,7 +315,6 @@ inline static void TAP_TargetStop(const uint16_t *in, uint16_t *out) {
     TargetStopDyn(&in[1], out);
 }
 inline static void TAP_TargetStatus(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_TargetStatus()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -340,7 +328,6 @@ inline static void TAP_TargetStatus(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [addr][addr],[len][len], [data]++
 inline static void TAP_WriteMemory(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_WriteMemory()\n\r");
     if (in[0] < 7)
         out[0] = RET_MALFORMED;
     else if ((in[0] - 6) != (in[3]>>1) + (in[3]&1))
@@ -354,11 +341,6 @@ inline static void TAP_WriteMemory(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [addr][addr], [len][len]
 inline static void TAP_FillMemory(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_FillMemory()\n\r");
- /* if (in[0] != 6) {
-        out[0] = RET_MALFORMED;
-        return;
-    } */
     DYN_Func *FillDynamic = (DYN_Func *) TAP_funcPntrs.DYN_FillMemory_pntr;
     FillDynamic(&in[1], out);
 }
@@ -369,7 +351,6 @@ inline static void TAP_FillMemory(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [addr][addr],[len][len]
 inline static void TAP_ReadMemory(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_ReadMemory()\n\r");
     if (in[0] != TAP_ReadCMD_sz) {
         out[0] = RET_MALFORMED;
         return;
@@ -380,7 +361,6 @@ inline static void TAP_ReadMemory(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [addr][addr],[len][len]
 inline static void TAP_DumpMemory(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_DumpMemory()\n\r");
     if (in[0] != TAP_ReadCMD_sz) {
         out[0] = RET_MALFORMED;
         return;
@@ -395,7 +375,6 @@ inline static void TAP_DumpMemory(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [register][size]
 inline static void TAP_ReadRegister(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_ReadRegister()\n\r");
     if (in[0] != 4)
         out[0] = RET_MALFORMED;
     else if (!in[2])
@@ -409,7 +388,6 @@ inline static void TAP_ReadRegister(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [register][size][data]++
 inline static void TAP_WriteRegister(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_WriteRegister()\n\r");
     if (in[0] < 5)
         out[0] = RET_MALFORMED;
     else if (!in[2])
@@ -429,7 +407,6 @@ inline static void TAP_WriteRegister(const uint16_t *in, uint16_t *out) {
 
 // [cmd len], [addr][addr],[len][len]
 inline static void TAP_AssistFlash(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_AssistFlash()\n\r");
     if (in[0] != TAP_AssistCMD_sz) {
         out[0] = RET_MALFORMED;
         return;
@@ -451,13 +428,11 @@ inline static void TAP_AssistFlash(const uint16_t *in, uint16_t *out) {
 // [1+TotSizeW][ 2  ][sizeB][instruction][sizeB]      : Execute instruction and read back data.
 // [1+TotSizeW][ 3  ][sizeB][instruction][sizeB][data]: Execute instruction with sent data, return received data.
 inline static void TAP_ExecuteIns(const uint16_t *in, uint16_t *out) {
-    // printf("Entered TAP_ExecuteIns()\n\r");
 
     uint16_t SizeB1 = (in[2] + (in[2]&1))/2;
 
     // Check Basic things first
     if (!SizeB1) {
-        // printf("TAP_ExecuteIns(): Malformed\n\r");
         out[0] = RET_MALFORMED;
         return;
     }
@@ -522,16 +497,13 @@ inline static void TAP_SetInterface(const uint16_t *in, uint16_t *out)
             TAP_ConfigureNEXUS(3);
             break;
         default:
-            // printf("Unknown type parameter\n\r");
             out[0] = RET_NOTSUP;
             return;
     }
 
-    // printf("Endian: %x\n\r", adt->cfgmask.Endian);
 }
 
 static void TAP_ReleaseTarget(const uint16_t *in, uint16_t *out) {
-    // printf("TAP_ReleaseTarget()\n\r");
     if (in[0] != 2) {
         out[0] = RET_MALFORMED;
         return;
@@ -546,13 +518,11 @@ static void TAP_ReleaseTarget(const uint16_t *in, uint16_t *out) {
 
 // Return not installed if code/host tries to use something that has not been set up
 static void DUMMY_NotInstalled(const uint16_t *in, uint16_t *out) {
-    // printf("Dummy notinst\n\r");
     out[0] = RET_NOTINS;
 }
 
 // future use. Return not supported if host tries to use a feature not supported by current TAP engine
 static void DUMMY_NotSupported(const uint16_t *in, uint16_t *out) {
-    // printf("Dummy nosup\n\r");
     out[0] = RET_NOTSUP;
 }
 
@@ -591,7 +561,6 @@ void TAP_Commands(const void *bufin)
     uint16_t *in_pntr  = (uint16_t *)  bufin;      // Incoming buffer
     uint16_t *out_pntr = (uint16_t *) &sendbfr[1]; // ..
 
-    // uint16_t receiveTotLen = *in_pntr++;
     in_pntr++;
 
     uint16_t receiveNoCmds = *in_pntr++; // Fetch number of commands
@@ -599,11 +568,8 @@ void TAP_Commands(const void *bufin)
     // Total length will be all the responses + 1
     sendbfr[0] = 1;
 
-    // printf("NoCmds: %u, Tot len: %u\n\r", receiveNoCmds, receiveTotLen);
-
 moreCommands:
 
-    // printf("CMD: %04x\n\r", *in_pntr);
     out_pntr[2] = 2;
 
     switch (*in_pntr)
@@ -691,9 +657,6 @@ moreCommands:
     // We add command description to the payload and as such must increment by one
     out_pntr[2]++;
 
-    // printf("Next: %x\n\r", in_pntr[1]);
-    // printf("Res: %04x\n\r", out_pntr[1]);
-
     *out_pntr   = *in_pntr;    // Which command are we responding to?
     sendbfr[0] += out_pntr[2]; // Payload[[cmd], [status], _[cmd len]_, [data (if present)]] ..next payload
 
@@ -704,15 +667,6 @@ moreCommands:
         out_pntr += out_pntr[2];
         goto moreCommands;
     }
-/*
-    printf("Sent:");
-    for (uint16_t i = 0; i < sendBuffer[0]; i++)
-    {
-        if (!(i&7)) printf("\n\r");
-        printf("%04X ", sendBuffer[i]);
-    }
-    printf("\n\r");
-*/
-    usb_sendData(&sendBuffer[0]);
 
+    usb_sendData(&sendBuffer[0]);
 }

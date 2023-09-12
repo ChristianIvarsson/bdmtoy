@@ -1,3 +1,5 @@
+#ifdef DEBUGPRINT
+
 /**************************************************************************//*****
  * @file     printf.c
  * @brief    Implementation of several stdio.h methods, such as printf(), 
@@ -556,3 +558,5 @@ signed int fputs(const char *pStr, FILE *pStream)
 }
 
 /* --------------------------------- End Of File ------------------------------ */
+
+#endif

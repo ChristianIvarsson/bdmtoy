@@ -34,6 +34,7 @@ void SetPinDir(const uint32_t port, const uint16_t pin, const uint8_t dir)
     if      (dir == 1) GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     else if (dir == 2) GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
     else if (dir == 3) GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    else if (dir == 4) GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(((GPIO_TypeDef *) (GPIOA_BASE + (port*0x400))), &GPIO_InitStructure);

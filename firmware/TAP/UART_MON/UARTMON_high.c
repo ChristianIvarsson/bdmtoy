@@ -44,7 +44,6 @@ static uint16_t UARTMON_sendByte(uint8_t data)
 
     if (UARTMON_putc(data) != RET_OK)
     {
-        // printf("Encountered internal malfunction\n\r");
         return 0xffff;
     }
 
@@ -54,11 +53,9 @@ static uint16_t UARTMON_sendByte(uint8_t data)
     if (!get_Timeout())
     {
         rec = USART1->DR&0xffff;
-        // printf("Ack %02x to %02x\n\r", rec, data);
         return (rec == data ? RET_OK : 0xffff);
     }
 
-    // printf("Got no ack!\n\r");
     return 0xffff;
 }
 
@@ -90,14 +87,12 @@ static uint16_t UARTMON_ReadMemory_int(uint32_t address, uint16_t *data)
         UARTMON_sendByte(address>>8) == RET_OK &&
         UARTMON_sendByte(address)    == RET_OK  )
     {
-        // printf("Command acc\n\r");
         set_Timeout(500);
         while (!(USART_GetFlagStatus(USART1, USART_FLAG_RXNE)) && (get_Timeout() == RET_OK))  ;
         if (get_Timeout() == RET_OK)
         {
 
             *data = USART1->DR;
-            // printf("Command rec: %02x\n\r", *data);
             return RET_OK;
         }
     }
@@ -204,8 +199,6 @@ void UARTMON_ReadMemory(const uint16_t *in, uint16_t *out)
     uint32_t Len      = *(uint32_t *) &in[2];
     uint16_t retval   = RET_OK;
     uint32_t noRead   = 0;
-
-    // printf("Read mem: %x\n\r", (uint16_t)Address);
 
     while (noRead < Len && retval == RET_OK)
     {

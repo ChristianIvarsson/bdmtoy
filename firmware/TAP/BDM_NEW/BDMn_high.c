@@ -15,17 +15,6 @@ static uint16_t BDMNEW_ReadGPR (const uint32_t Reg, void *out);
 static uint16_t BDMNEW_WriteGPR(const uint32_t Reg, const void *in);
 static uint32_t newbdm_delay = 0;
 
-/*
-static void printRegSumamry()
-{
-    for (uint16_t i = 0; i < 32; i++) {
-        uint32_t tmpr = 0;
-        BDMNEW_ReadGPR(i, &tmpr);
-        printf("%08X ", tmpr);
-        if ((i&3)==3) printf(" (%2u - %2u)\n\r", i-3, i);
-    }
-}*/
-
 // I wondered why kSec contained garbage while pointK was correct...
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
@@ -38,9 +27,6 @@ void PrintTimeTaken(const uint32_t uSecs, const uint32_t noK)
     while (pointK >  999) pointK -=  1000;
     kSec -= pointK;
     kSec /= 1000;
-
-    // Sorry about the warning. Can't do much..
-    // printf("%u K took %u uSecs (%u mS) (%u.%03u KB/s)\n", (uint16_t) noK, uSecs, (uint16_t)((uint32_t)uSecs/1000), (uint16_t)kSec, (uint16_t)pointK);
 }
 #pragma GCC pop_options
 
@@ -185,13 +171,6 @@ static uint32_t BDMNEW_Shift(const uint32_t Header, const uint8_t noBits, uint32
 
         CLK_LO;
         TAP_PreciseDelay( newbdm_delay );
-    }
-
-    // This is just here while debugging..
-    if (i < runtBits)
-    {
-        // for (uint32_t e = 0; e < 5; e++)
-        // printf("BDMNEW_Shift(): Target has more bits!\n\r");
     }
 
     TDI_LO;
@@ -429,30 +408,22 @@ static uint16_t BDMNEW_WriteSPR(const uint32_t Reg, const void *in)
     // Backup r0
     retval = BDMNEW_ReadGPR(0, &r0);
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to read r0\n\r");
         return retval;
     }
 
     retval = BDMNEW_WriteGPR(0, in);
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to write r0 (1)\n\r");
         return retval;
     }
 
     // Move from r0 to selected spr
     retval = BDMNEW_ExecIns( PPC_be_MTSPR_R0(Reg) );
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
         return retval;
     }
 
     // Restore r0
-    retval = BDMNEW_WriteGPR(0, &r0);
-    if (retval != RET_OK)
-    {
-        // printf("BDMNEW_ReadSPR(): Failed to restore r0 (2)\n\r");
-    }
-    return retval;
+    return BDMNEW_WriteGPR(0, &r0);
 }
 
 static uint16_t BDMNEW_ReadSPR(const uint32_t Reg, void *out)
@@ -463,68 +434,24 @@ static uint16_t BDMNEW_ReadSPR(const uint32_t Reg, void *out)
     // Backup r0
     retval = BDMNEW_ReadGPR(0, &r0);
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to read r0 (1)\n\r");
         return retval;
     }
 
     // Move from selected spr to r0
     retval = BDMNEW_ExecIns( PPC_be_MFSPR_R0(Reg) );
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
         return retval;
     }
 
     // Read r0
     retval = BDMNEW_ReadGPR(0, out);
     if (retval != RET_OK) {
-        // printf("BDMNEW_ReadSPR(): Failed to read r0 (2)\n\r");
         return retval;
     }
 
     // Restore r0
-    retval = BDMNEW_WriteGPR(0, &r0);
-    if (retval != RET_OK)
-    {
-        // printf("BDMNEW_ReadSPR(): Failed to restore r0\n\r");
-    }
-    return retval;
+    return BDMNEW_WriteGPR(0, &r0);
 }
-
-/*
-static uint16_t BDMNEW_ReadMSR(void *out)
-{
-    uint32_t r0 = 0;
-    uint16_t retval;
-
-    // Backup r0
-    retval = BDMNEW_ReadGPR(0, &r0);
-    if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to read r0 (1)\n\r");
-        return retval;
-    }
-
-    // Move from msr to r0
-    retval = BDMNEW_ExecIns( PPC_be_MFMSR_R0 );
-    if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to exec\n\r");
-        return retval;
-    }
-
-    // Read r0
-    retval = BDMNEW_ReadGPR(0, out);
-    if (retval != RET_OK) {
-        printf("BDMNEW_ReadSPR(): Failed to read r0 (2)\n\r");
-        return retval;
-    }
-
-    // Restore r0
-    retval = BDMNEW_WriteGPR(0, &r0);
-    if (retval != RET_OK)
-        printf("BDMNEW_ReadSPR(): Failed to restore r0\n\r");
-
-    return retval;
-}
-*/
 
 // Address must be aligned and length must be in multiples of four. Speed has its drawbacks
 static uint16_t BDMNEW_FillMem(const uint32_t Address, const uint32_t Length, const void* in)
@@ -685,54 +612,6 @@ static uint16_t BDMNEW_FreezeStatus_int(uint16_t *out)
 
     *out = (Res&0x40) ? RET_TARGETSTOPPED : RET_TARGETRUNNING;
 
-    // printf("\n\rFREEZE: %u\n\r", (uint8_t)(Res&0x40)>>6);
-    // printf("DLMODE: %u\n\r\n\r", (uint8_t)(Res&0x20)>>5);
-    // printf("Debug bits: %08X (%x)\n\r", Res, (uint16_t)Status);
-
-    // Print out some crap if the target has stopped and all is OK
-/*
-    if ( (Res&0x40) && Status == 3)
-    {
-        // Read SRR1 16:31 (The half that is copied from MSR)
-        uint32_t srr1    = 0;
-        uint32_t Status2 = BDMNEW_ReadSPR(27, &srr1);
-        if (Status2 != RET_OK) return Status;
-        for (uint8_t i = 16; i < 32; i++) {
-            if (srr1 & BIT_REVERSE(32,i))
-                printf("SRR1 bit %u set\n\r", i);
-        }
-        if (srr1 & 0xFFFF) printf("\n\r");
-
-        // Read ECR
-        srr1    = 0;
-        Status2 = BDMNEW_ReadSPR(148, &srr1);
-        if (Status2 != RET_OK)  return Status;
-        for (uint8_t i = 0; i < 32; i++) {
-            if (srr1 & BIT_REVERSE(32,i))
-                printf("ECR bit %2u set\n\r", i);
-        }
-        if (srr1) printf("\n\r");
-
-        // Read DER
-        srr1    = 0;
-        Status2 = BDMNEW_ReadSPR(149, &srr1);
-        if (Status2 != RET_OK) return Status;
-        for (uint8_t i = 0; i < 32; i++) {
-            if (srr1 & BIT_REVERSE(32,i))
-                printf("DER bit %2u set\n\r", i);
-        }
-        if (srr1) printf("\n\r");
-
-        // Read MSR
-        srr1    = 0;
-        Status2 = BDMNEW_ReadMSR(&srr1);
-        if (Status2 != RET_OK) return Status;
-        for (uint8_t i = 0; i < 32; i++) {
-            if (srr1 & BIT_REVERSE(32,i))
-                printf("MSR bit %2u set\n\r", i);
-        }
-    }
-*/
     return (Status == 3) ? RET_OK : BDMNEW_TranslateFault(Status);
 }
 
@@ -812,7 +691,6 @@ void BDMNEW_setup(const float TargetFreq)
 // [register][size][data]++
 void BDMNEW_WriteRegister(const uint16_t *in, uint16_t *out)
 {
-    // printf("Write reg: %04u, %08X\n\r", in[0], *(uint32_t*)&in[2]);
     if ( in[1] != 4 )
         out[0] = RET_UNALIGNED;
     // GPR
@@ -1000,17 +878,9 @@ void BDMNEW_AssistFlash(const uint16_t *in, uint16_t *out)
     uint32_t bufferStart = cmd->BufferStart;
     uint32_t bufferLen   = cmd->BufferLen;
     uint32_t flashStart  = cmd->Address;
-/*
-    printRegSumamry();
-    printf("Flash Length : %08X\n\r", cmd->Length);
-    printf("Driver start : %08X\n\r", driverStart);
-    printf("Buffer start : %08X\n\r", bufferStart);
-    printf("Buffer length: %08X\n\r", bufferLen);
-    printf("Flash start  : %08X\n\r", flashStart);
-*/
+
     while (flashStart < Last)
     {
-        // printf("Flash start  : %08X\n\r", flashStart);
         uint16_t *ptr = TAP_RequestData(flashStart, bufferLen);
 
         // Got no data!
@@ -1073,9 +943,6 @@ void BDMNEW_AssistFlash(const uint16_t *in, uint16_t *out)
         flashStart += bufferLen;
     }
 
-    // printf("Loop done\n\r");
-    // sleep(4);
-
     regRead = RET_TARGETRUNNING;
     // while running..
     set_Timeout(60000);
@@ -1105,7 +972,6 @@ void BDMNEW_AssistFlash(const uint16_t *in, uint16_t *out)
         return;
     }
 
-    // printf("Operation done\n\r");
     TAP_UpdateStatus(RET_OK, RET_OK);
 }
 
@@ -1128,116 +994,6 @@ void BDMNEW_ReleaseTarg(const uint16_t *in, uint16_t *out)
 
     TAP_InitPins();
 }
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Toys
-
-/*
-extern uint16_t receiveBuffer[ADAPTER_BUFzIN/2];
-extern uint16_t sendBuffer[(ADAPTER_BUFzOUT/2)+2];
-
-static uint16_t MPC562Init()
-{
-    // *F*ck you, watchdog!*
-    uint16_t SYPCR = 0;
-    uint16_t retval = BDMNEW_ReadMem(0x2FC006, 2, &SYPCR);
-    if (retval != RET_OK)
-        return retval;
-
-    printf("SYPCR: %08x\n\r", SYPCR);
-    SYPCR |= 1 << 3; // Set SWF
-    SYPCR &= 0xFFFB; // Negate SWE
-
-    retval = BDMNEW_WriteMem(0x2FC006, 2, &SYPCR);
-    printf("SYPCR: %08x\n\r", SYPCR);
-
-    // SYPCR = 0;
-    // retval = BDMNEW_ReadMem(0x2FC286, 2, &SYPCR);
-    // printf("PLPRCR: %08x\n\r", SYPCR);
-
-    // SYPCR |= 0x80;
-    // printf("PLPRCR: %08x\n\r", SYPCR);
-
-    // retval = BDMNEW_WriteMem(0x2FC286, 2, &SYPCR);
-    // sleep(100);
-
-    // retval = BDMNEW_ReadMem(0x2FC286, 2, &SYPCR);
-    // printf("PLPRCR: %08x\n\r", SYPCR);
-    return retval;
-}
-
-// Ver:  0002   Rev:  0020
-// Part: 3530   Mask: 0000
-void MPCBDMTEST()
-{
-
-    // playdma();
-    BDMNEW_TargetReset_int();
-
-    BDMNEW_setup(56000000, 0);
-
-    uint16_t tmeeep;
-    BDMNEW_FreezeStatus_int(&tmeeep);
-    // return;
-
-    if (MPC562Init() != RET_OK)
-    {
-        printf("Init fail!\n\r");
-        return;
-    }
-
-    uint16_t data[2];
-    *(uint32_t *) &data = 0;
-    BDMNEW_ReadSPR(287,&data);
-    printf("Ver:  %04X   Rev:  %04X\n\r", data[1], data[0]);
-
-    *(uint32_t *) &data = 0;
-    BDMNEW_ReadSPR(638,&data);
-    printf("Part: %04X   Mask: %04X\n\r", data[1], data[0]);
-
-    uint16_t tempdata[4];
-
-    if (BDMNEW_ReadMem(0, 4, &tempdata)) {
-        printf("test could not read\n\r");
-    }
-    if (BDMNEW_ReadMem(0, 4, &tempdata[2])) {
-        printf("test could not read\n\r");
-    }
-    printf("\n\rFLASH[0][4]: %04X%04X %04X%04X\n\r",tempdata[1],tempdata[0],tempdata[3],tempdata[2]);
-
-    for (uint32_t i = 0; i < 512; i++)
-        receiveBuffer[i] = i+1;
-
-    uint32_t Len = 2048*1024;
-    uint32_t Address = 0x3F8000;
-
-    printf("\n\rStart fill\n\r");
-    uint32_t old = DWT->CYCCNT;
-    while (Len)
-    {
-        BDMNEW_FillMem(Address,1024,&receiveBuffer);
-
-        Len     -= 1024;
-        Address += 1024;
-
-        if (Address >= (0x3F8000+32768))
-            Address =0x3F8000;
-    }
-
-    PrintTimeTaken((DWT->CYCCNT - old) / 48, 2048);
-
-    printf("\n\rReadback\n\r");
-    if (BDMNEW_ReadMem(0x3F8000, 4, &tempdata))
-        printf("test could not read\n\r");
-    if (BDMNEW_ReadMem(0x3F8004, 4, &tempdata[2]))
-        printf("test could not read\n\r");
-
-    printf("SRAM[0][4] : %04X%04X %04X%04X\n\r", tempdata[1], tempdata[0], tempdata[3], tempdata[2]);
-}
-*/
 
 // Ah.. the silence was nice. Let's restore the whine
 #pragma GCC diagnostic pop

@@ -101,7 +101,6 @@ static void NEXUS_ShiftR(const uint16_t bitnr, void *read)
         CLK_LO;
 
         if (((bitcnt & 0x1f) == 0x1f) || (bitcnt == (bitnr - 1))) {
-            // printf("NEXUS shift read: %08x\n", readdata);
             *readptr++ = readdata;
             readdata = 0;
         }
@@ -460,7 +459,6 @@ static uint16_t NEXUS3_FetchData(const uint8_t bitSz, uint16_t Count, void *out)
     NEXUS3_ReadCommand(7, &RWCS);   // Read back, check status bits
     if (RWCS.ERR)
     {
-        // printf("NEXUS3_FetchData: ERR!\n");
         return RWCS.DV ? RET_RESTRICMEM : RET_GENERICERR;
     }
 
@@ -537,7 +535,6 @@ static uint16_t NEXUS1_Engage()
     const uint8_t data = ACCESS_AUX_TAP_ONCE;
     OnCE_OCMD_t OCMD;
     *(uint16_t *) &OCMD = 0;
-    // printf("Engaging NEXUS 1\n\r");
 
     NEXUS_ResetState();
 
@@ -561,8 +558,6 @@ static uint16_t NEXUS3_Engage()
     *(uint32_t *) &DBCR0 = 0;
     *(uint32_t *) &OCR   = 0;
     *(uint16_t *) &OnCE_OSR   = 0;
-
-    // printf("Engaging NEXUS 3\n\r");
 
     NEXUS_ResetState();
 
@@ -809,25 +804,18 @@ static uint16_t NEXUS_HowMuchFailed()
     // Only print stuff that is out of the ordinary
     if (!OnCE_OSR.DEBUG) {
         fail = RET_UNKERROR;
-        // printf("DEBUG  : %u\n\r", OnCE_OSR.DEBUG);
     }if (OnCE_OSR.STOP) {
         fail = RET_UNKERROR;
-        // printf("STOP   : %u\n\r", OnCE_OSR.STOP);
     }if (OnCE_OSR.HALT) {
         fail = RET_UNKERROR;
-        // printf("HALT   : %u\n\r", OnCE_OSR.HALT);
     }if (OnCE_OSR.RESET) {
         fail = RET_UNKERROR;
-        // printf("RESET  : %u\n\r", OnCE_OSR.RESET);
     }if (OnCE_OSR.CHKSTOP) {
         fail = RET_UNKERROR;
-        // printf("CHKSTOP: %u\n\r", OnCE_OSR.CHKSTOP);
     }if (OnCE_OSR.ERR) {
         fail = RET_GENERICERR;
-        // printf("ERR    : %u\n\r", OnCE_OSR.ERR);
     }if (!OnCE_OSR.MCLK) {
         fail = RET_UNKERROR;
-        // printf("MCLK   : %u\n\r", OnCE_OSR.MCLK);
     }
 
     return fail;
@@ -845,13 +833,6 @@ static void NEXUS_sStep(uint32_t Ins, uint32_t PC)
 
     // Read back old CPUSCR since we must write all of them in one go
     NEXUS1_ReadCPUSCR(&OnCE_CPUSCR);
-    // printf("\n\rBefore:\n\r");
-    // printf("CTL    : %04X\n\r",(OnCE_CPUSCR.CTL)>>16);
-    // printf("MSR    : %08X\n\r",OnCE_CPUSCR.MSR);
-    // printf("Ins    : %08X\n\r",OnCE_CPUSCR.IR);
-    // printf("PC     : %08X\n\r",OnCE_CPUSCR.PC);
-    // printf("WBBRLow: %08X\n\r",OnCE_CPUSCR.WBBRLower);
-    // printf("WBBRUp : %08X\n\r",OnCE_CPUSCR.WBBRUpper);
 
     // Update relevant parameters
     OnCE_CPUSCR.PC  = PC;
@@ -937,7 +918,6 @@ void NEXUS_ExecuteIns(const uint16_t *in, uint16_t *out)
         }
 
         uint32_t PC = *(uint32_t *) &in[5];
-        // printf("NEXUS_ExecuteIns(0).PC: %08X\n\r", PC);
         Status = NEXUS_ExecIns(Ins, PC);
     }
 
@@ -945,7 +925,6 @@ void NEXUS_ExecuteIns(const uint16_t *in, uint16_t *out)
     else if (*in == 2) {
         uint32_t PC      = *(uint32_t *) &in[6];
         uint16_t noBytes = in[4];
-        // printf("NEXUS_ExecuteIns(2).PC: %08X\n\r", PC);
 
         // Can only read 4 or 8 bytes of data
         // Only 32-bit PC is supported

@@ -34,7 +34,6 @@ typedef struct {
     uint32_t Data;
 } TAP_WriteCMD_t;
 
-
 typedef struct {
     uint32_t Address;
     uint32_t Length;
@@ -48,7 +47,7 @@ typedef struct {
 
 typedef struct {
     uint16_t   PAD:15;
-    uint8_t Endian: 1; // Useless atm... 1: big, 0: small. Because big is the best! ;)
+    uint8_t Endian: 1; // Useless atm... 1: big, 0: small.
 } cfgmask_host_t;
 
 // TAP configuration
@@ -58,15 +57,6 @@ typedef struct {
     cfgmask_host_t cfgmask;
 } TAP_Config_host_t;
 
-
-/*
-typedef struct {
-    uint32_t Address;
-    uint32_t Length;
-    uint32_t Data;
-} TAP_WriteReg_t;
-*/
-
 typedef struct {
     uint32_t frequency;
     uint16_t polarity;
@@ -74,8 +64,5 @@ typedef struct {
     uint16_t order;
     uint16_t size;
 } spi_cfg_t;
-
-
-
 
 #endif

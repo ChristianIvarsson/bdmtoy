@@ -98,7 +98,7 @@ void usb_receiveData()
 
 static void SPI_PreinitDMA()
 {
-    DMA_InitTypeDef DMA_InitStructure; //Variable used to setup the DMA
+    DMA_InitTypeDef DMA_InitStructure;
 
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx | SPI_I2S_DMAReq_Tx, DISABLE);
 
@@ -138,21 +138,35 @@ static void SPI_PreinitDMA()
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx | SPI_I2S_DMAReq_Tx, ENABLE);
 }
 
+#ifdef DEBUGPRINT
+static const char *spiSpd[] = {
+"SPI_BaudRatePrescaler_2",
+"SPI_BaudRatePrescaler_4",
+"SPI_BaudRatePrescaler_8",
+"SPI_BaudRatePrescaler_16",
+"SPI_BaudRatePrescaler_32",
+"SPI_BaudRatePrescaler_64",
+"SPI_BaudRatePrescaler_128",
+"SPI_BaudRatePrescaler_256"
+};
+#endif
+
+
 // SPI2 is apb1 (which is ran at 24 MHz (sysfreq / 2))
 void InitSPI(const spi_cfg_t *cfg)
 {
     SPI_I2S_DeInit(SPI2);
-    SPI_InitTypeDef   SPI_InitStructure;
+    SPI_InitTypeDef SPI_InitStructure;
 
-    SPI_InitStructure.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
-    SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
-    SPI_InitStructure.SPI_NSS               = SPI_NSS_Soft;
-    SPI_InitStructure.SPI_CRCPolynomial     = 0;
+    SPI_InitStructure.SPI_Direction     = SPI_Direction_2Lines_FullDuplex;
+    SPI_InitStructure.SPI_Mode          = SPI_Mode_Master;
+    SPI_InitStructure.SPI_NSS           = SPI_NSS_Soft;
+    SPI_InitStructure.SPI_CRCPolynomial = 0;
 
-    SPI_InitStructure.SPI_FirstBit          = cfg->order    ? SPI_FirstBit_MSB : SPI_FirstBit_LSB;
-    SPI_InitStructure.SPI_DataSize          = cfg->size     ? SPI_DataSize_16b : SPI_DataSize_8b;
-    SPI_InitStructure.SPI_CPOL              = cfg->polarity ? SPI_CPOL_High    : SPI_CPOL_Low;
-    SPI_InitStructure.SPI_CPHA              = cfg->phase    ? SPI_CPHA_2Edge   : SPI_CPHA_1Edge;
+    SPI_InitStructure.SPI_FirstBit      = cfg->order    ? SPI_FirstBit_MSB : SPI_FirstBit_LSB;
+    SPI_InitStructure.SPI_DataSize      = cfg->size     ? SPI_DataSize_16b : SPI_DataSize_8b;
+    SPI_InitStructure.SPI_CPOL          = cfg->polarity ? SPI_CPOL_High    : SPI_CPOL_Low;
+    SPI_InitStructure.SPI_CPHA          = cfg->phase    ? SPI_CPHA_2Edge   : SPI_CPHA_1Edge;
 
     if (cfg->frequency >= (24000000 / 2))
         SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
@@ -170,6 +184,11 @@ void InitSPI(const spi_cfg_t *cfg)
         SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;
     else
         SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
+
+#ifdef DEBUGPRINT
+    printf("Requested freq: %u.%u MHz\n\r", (u16)((u32)cfg->frequency/1000000),(u16)((u32)(cfg->frequency % 1000000)/100000));
+    printf("Setting SPI to %s\n\r",  spiSpd[(SPI_InitStructure.SPI_BaudRatePrescaler>>3)&7]);
+#endif
 
     SPI_Init(SPI2, &SPI_InitStructure);
 
@@ -210,7 +229,7 @@ static void init_debugUart()
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    USART_InitStructure.USART_BaudRate = 921600;
+    USART_InitStructure.USART_BaudRate = 115200;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
     USART_InitStructure.USART_Parity = USART_Parity_No ;
@@ -234,9 +253,6 @@ static void InitSys()
     RCC_Configuration();
     init_debugUart(); // Debug uart
     init_Timeout();
-
-    // SetPinDir(    2, 13, 1); // Accled
-    // WritePin (    2, 13, 1); // Turn off led
 
     // Enable DWT timer
     if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk))
@@ -264,27 +280,14 @@ int main()
 
     uint8_t  *byteptr = (uint8_t  *) &receiveBuffer[0];
 
-	// uint32_t old = DWT->CYCCNT;
-	// TAP_PreciseDelay(100);
-	// 106 = 127
-	// 107 = 134
-	// printf("DWT spent %u clocks\n", DWT->CYCCNT - old);
-
-	// MPCBDMTEST();
+#ifdef DEBUGPRINT
+    printf("adapter online\n\r");
+#endif
 
 	while(1)
 	{
 	    if (usbrec)
 	    {
-	        /*
-	        printf("Data in:");
-	        for (uint16_t i = 0; i < receiveBuffer[0]; i++)
-	        {
-	            if (!(i&7)) printf("\n\r");
-	            printf("%04X ", receiveBuffer[i]);
-	        }
-	        printf("\n\r");
-	    */
 	        // We expect data in little-endian format.
 	        // Host makes sure not to mix commands. First command in queue determines what rest is allowed
 	        // Word[2] Contains command. Commands are split in categories of:
@@ -299,12 +302,10 @@ int main()
 	                break;
 	        }
 
-	        // printf("\n\r\n\r\n\rReturned to main\n\r");
 	        usbrec = 0;
 	    }
 	}
 
-	// printf("What the f*ck are you doing!?\n\r");
 	return 0;
 }
 

@@ -62,9 +62,9 @@ enum MainCommands
 enum Master_Commands
 {
   /////////////////////////////////
-  /// Category: 0x00XX TAP (BDM, JTAG etc)
+  // Category: 0x00XX TAP (BDM, JTAG etc)
   
-  /// Configuration
+  // Configuration
   TAP_DO_SETINTERFACE   = 0x0001,
   
   TAP_DO_PORTRESET      = 0x0010,
@@ -75,39 +75,32 @@ enum Master_Commands
   TAP_DO_TARGETSTOP     = 0x0015,
   TAP_DO_TARGETSTATUS   = 0x0016,
 
-  /// Memory
+  // Memory
   TAP_DO_READMEMORY     = 0x0040, // Read memory. It has slight dump-capabilities but it's not meant for it! Use DUMPMEM
   TAP_DO_WRITEMEMORY    = 0x0041, // Write memory. -||- but FILLMEM
 
   TAP_DO_DUMPMEM        = 0x0050, // ..
   TAP_DO_FILLMEM        = 0x0051, // ..
 
-
-  /// Register
+  // Register
   TAP_DO_READREGISTER   = 0x0060, // Read register. Selected TAP determines what each number means
   TAP_DO_WRITEREGISTER  = 0x0061, // Write register. Selected TAP determines what each number means
 
-  // TAP_DO_ANDMEMORY      = 0xFFFF, // Read memory, AND with sent data and write result back to memory
-  // TAP_DO_ORMEMORY       = 0xFFFF, // Read memory, OR with sent data and write result back to memory
-  // TAP_DO_XORMEMORY      = 0xFFFF, // Read memory, XOR with sent data and write result back to memory
-
-
-
-
-  // 
+  // Assisted functions
   TAP_DO_ASSISTFLASH    = 0x0052, // host -> adapter, request
   TAP_DO_ASSISTFLASH_IN = 0x0152, // host <-> adapter, ongoing
-  
-  
+
+  // Various
   TAP_DO_ExecuteIns     = 0x0070, // Execute instruction
   TAP_DO_ReleaseTarg    = 0x0071, // Reset target and restore pins
-  
-  
+  TAP_DO_TRACEEXEC      = 0x0072, // Trace execution flow. Currently only planned on rp2040 due to EXTREME demands
+
+  // ...
   TAP_DO_UPDATESTATUS   = 0x0100, // adapter -> host
-  
-  
+
   /////////////////////////////////
-  /// Category: 0x01XX Future
+  // 
+
 };
 
 // TAP_DO_SETINTERFACE, TYPE
@@ -124,8 +117,7 @@ enum TAP_IO {
 };
 
 /// Part of TAP_DO_SETINTERFACE, cfgmask
-enum endians 
-{
+enum endians  {
   TAP_BIGENDIAN    = 1,
   TAP_LITTLEENDIAN = 0
 };
@@ -162,6 +154,11 @@ enum NEXUS_Regs {
   NEXUS_CPUSCR_MSR        = 0x0014,
   NEXUS_CPUSCR_WBBRUpper  = 0x0015,
   NEXUS_CPUSCR_WBBRLower  = 0x0016,
+};
+
+enum enTime {
+  enTimeLeft   = 0,
+  enOutaTime   = 1
 };
 
 enum SPI_PHASE    { SPI_FIRST = 0, SPI_SECOND = 1 };

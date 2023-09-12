@@ -95,13 +95,16 @@ static uint16_t BDMOLD_TargetReady_int()
 
     if(!RDY_RD)
     {
+#ifdef DEBUGPRINT
+        printf("RDY not set\n\r");
+#endif
         SetPinDir(P_Trst, 1);
         RST_LO;
         sleep(25);
         SetPinDir(P_Trst, 3);
 
         set_Timeout(500);
-        while(!RDY_RD &&  !get_Timeout())   ;
+        while(!RDY_RD && !get_Timeout())   ;
     }
 
     // disable_Timeout();
@@ -296,14 +299,10 @@ static void BDMOLD_blastReceiver(uint32_t Start, const uint32_t End, uint16_t *b
 
         if (usb_sendData(buffer) != RET_OK)
         {
-            // printf("Failed to send!\n\r");
             buffer[0] = RET_UNKERROR;
             return;
         }
     }
-
-    // dwt = (DWT->CYCCNT - dwt) / 48000;
-    // printf("Dump took: %u ms\n",(uint16_t) dwt);
 
     // turbodump has a quirk that'll thrash the next command
     // So.. let's thrash this one
@@ -359,7 +358,7 @@ void BDMOLD_WriteMemory(const uint16_t *in, uint16_t *out)
 {
     uint32_t Address  = *(uint32_t *) &in[0];
     uint32_t Len      = *(uint32_t *) &in[2];
-    uint16_t *dataptr =  (uint16_t  *) &in[4];
+    uint16_t *dataptr =  (uint16_t *) &in[4];
     uint16_t retval   = RET_OK;
 
     while (Len && retval == RET_OK)
@@ -450,6 +449,10 @@ void BDMOLD_DumpMemory(const uint16_t *in, uint16_t *out)
 // [register][size][data]++
 void BDMOLD_WriteRegister(const uint16_t *in, uint16_t *out)
 {
+#ifdef DEBUGPRINT
+    printf("BDM_WriteReg: %04x, %04x%04x\n\r", in[0], in[3], in[2]);
+#endif
+
     switch (*in & 0xFFF0)
     {
         case BDMOLD_W_DREG: // D/AREG
@@ -611,6 +614,5 @@ void BDMOLD_AssistFlash(const uint16_t *in, uint16_t *out)
         return;
     }
 
-    // printf("Assisted flash complete\n\r");
     TAP_UpdateStatus(RET_OK, 0);
 }

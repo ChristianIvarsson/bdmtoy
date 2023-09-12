@@ -25,8 +25,7 @@ const uint8_t usb_DeviceDescriptor[] =
     0x40,   // bMaxPacketSize0
     0xFF, 0xFF, // idVendor  =
     0x07, 0x01, // idProduct =
-    0x00,
-    0x02,   // bcdDevice = 2.00
+    0x00, 0x02, // bcdDevice = 2.00
        1,    // Index of string descriptor describing manufacturer
        2,    // Index of string descriptor describing product
        3,    // Index of string descriptor describing the device's serial number

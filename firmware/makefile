@@ -13,12 +13,11 @@ GDB=$(GCCPATH)$(BASENAME)-gdb
 
 TARGPROC=-mcpu=cortex-m3 -mthumb
 
-SHAREDC=-ffunction-sections -O2 -Wall -nostartfiles -g3 -gdwarf-2
+SHAREDC=-ffunction-sections -O1 -Wall -nostartfiles -g3 -gdwarf-2
 
 # Include development makefile if present
--include ../.private/firmdevflags
+# -include ../.private/firmdevflags
 
-#  -DBIGBOARD
 # Some of the library code is using if flags
 CODEFLAGS=-DSTM32F103C8 -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -D__ASSEMBLY__ $(DEVFLAGS) 
 
