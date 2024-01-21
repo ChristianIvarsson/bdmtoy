@@ -1,14 +1,13 @@
-
+CC=gcc
 
 APP=debugtool
 CFLAGS= -pthread -O1
 
 ifeq ($(OS),Windows_NT)
-CC="x86_64-w64-mingw32-gcc.exe"
-LDFLAGS= -m64 -L../shared/libs/win/libusb-MinGW-x64/lib -llibusb-1.0
-CFLAGS+= -m64
+LIBUSBVER=libusb-MinGW-x64
+LDFLAGS= -m64 -L../shared/libs/win/$(LIBUSBVER)/lib -lusb-1.0 -lpthread
+CFLAGS+= -m64 -I../shared/libs/win/$(LIBUSBVER)/include/libusb-1.0
 else
-CC=gcc
 LDFLAGS=-lusb-1.0 -lpthread
 endif
 

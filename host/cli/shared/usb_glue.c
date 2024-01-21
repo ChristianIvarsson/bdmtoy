@@ -12,7 +12,7 @@
 #ifdef _WIN32
 
 #include <windows.h>
-#include "libs/win/libusb.h"
+#include "libusb.h"
 
 static HANDLE thread_id;
 
