@@ -33,7 +33,7 @@ uint32_t dumpBMWcluster(uint32_t Start, uint32_t Length)
 {
     uint32_t fakeAddress;
     uint32_t status = 0;
-	uint8_t  page;
+    uint8_t  page;
     // uint16_t regX;
     // uint16_t *ptr;
 /*  

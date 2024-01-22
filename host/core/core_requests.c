@@ -26,9 +26,9 @@ void *TAP_SetInterface(TAP_Config_host_t config)
     arr[1] = TAP_Config_sz;
     arr[2] = config.Type;
 
-	// Microbob's POS C compiler doesn't behave nicely with packed (nor a lot of other things...)
-	arr[3] = 0;
-	arr[3] |= (config.cfgmask.Endian & 1) << 15;
+    // Microbob's POS C compiler doesn't behave nicely with packed (nor a lot of other things...)
+    arr[3] = 0;
+    arr[3] |= (config.cfgmask.Endian & 1) << 15;
 
     *(uint32_t *) &arr[4] = config.Frequency; // .."Ooops" Rules are meant to be broken!...
 
@@ -400,8 +400,8 @@ void *TAP_ReadByte(uint32_t Addr)
     data[0] = TAP_DO_READMEMORY;
     data[1] = TAP_ReadCMD_sz;
 
-	CMD->Address = Addr;
-	CMD->Length  = 1;
+    CMD->Address = Addr;
+    CMD->Length  = 1;
 
     return &data[0];
 }
@@ -414,8 +414,8 @@ void *TAP_ReadWord(uint32_t Addr)
     data[0] = TAP_DO_READMEMORY;
     data[1] = TAP_ReadCMD_sz;
 
-	CMD->Address = Addr;
-	CMD->Length  = 2;
+    CMD->Address = Addr;
+    CMD->Length  = 2;
 
     return &data[0];
 }
@@ -428,8 +428,8 @@ void *TAP_ReadDword(uint32_t Addr)
     data[0] = TAP_DO_READMEMORY;
     data[1] = TAP_ReadCMD_sz;
 
-	CMD->Address = Addr;
-	CMD->Length  = 4;
+    CMD->Address = Addr;
+    CMD->Length  = 4;
 
     return &data[0];
 }
@@ -442,8 +442,8 @@ void *TAP_ReadArr(uint32_t Addr, uint32_t Len)
     data[0] = TAP_DO_READMEMORY;
     data[1] = TAP_ReadCMD_sz;
 
-	CMD->Address = Addr;
-	CMD->Length  = Len;
+    CMD->Address = Addr;
+    CMD->Length  = Len;
 
     return &data[0];
 }
@@ -458,8 +458,8 @@ void *TAP_Dump(uint32_t Addr, uint32_t Len)
     data[0] = TAP_DO_DUMPMEM;
     data[1] = TAP_ReadCMD_sz;
 
-	CMD->Address = Addr;
-	CMD->Length  = Len;
+    CMD->Address = Addr;
+    CMD->Length  = Len;
 
     return &data[0];
 }

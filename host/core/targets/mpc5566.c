@@ -12,12 +12,12 @@ extern "C" {
 #include "../../../shared/insdef_ppc.h"
 
 typedef struct  {
-	uint8_t  MASKNUM_MIN: 4;
-	uint8_t  MASKNUM_MAJ: 4;
-	uint8_t  pad        : 4;
-	uint8_t  PKG        : 3;
-	uint8_t  CSP        : 1;
-	uint16_t PARTNUM    :16;
+    uint8_t  MASKNUM_MIN: 4;
+    uint8_t  MASKNUM_MAJ: 4;
+    uint8_t  pad        : 4;
+    uint8_t  PKG        : 3;
+    uint8_t  CSP        : 1;
+    uint16_t PARTNUM    :16;
 } SIU_MIDR_BEONLE_t;
 
 typedef struct {
@@ -55,13 +55,13 @@ static uint32_t NEXUS_Step(uint64_t Ins, uint32_t Addr)
         core_castText("WBBRH: %08X", CPUSCR->WBBRUpper);
     // core_castText("CTL  : %08X", CPUSCR->CTL);
     // core_castText("MSR  : %08X", CPUSCR->MSR);
-	return RET_OK;
+    return RET_OK;
 }
 
 static uint32_t set_FLASH_MCR(uint32_t value)
 {
-	uint32_t  data = 0;
-	uint16_t *ptr;
+    uint32_t  data = 0;
+    uint16_t *ptr;
     
     ptr = wrk_requestData( TAP_ReadDword(0xC3F88000) );
     if (!ptr) {
@@ -78,8 +78,8 @@ static uint32_t set_FLASH_MCR(uint32_t value)
 
 static uint32_t clr_FLASH_MCR(uint32_t value)
 {
-	uint32_t  data;
-	uint16_t *ptr;
+    uint32_t  data;
+    uint16_t *ptr;
     
     ptr = wrk_requestData( TAP_ReadDword(0xC3F88000) );
     if (!ptr) {
@@ -97,8 +97,8 @@ static uint32_t clr_FLASH_MCR(uint32_t value)
 
 static uint32_t NukeFlash()
 {
-	uint32_t  data, retval, i;
-	uint16_t *ptr;
+    uint32_t  data, retval, i;
+    uint16_t *ptr;
     uint16_t  readAddress[2];
 
     /* * * * * * * * * * * * */
@@ -229,10 +229,10 @@ static uint32_t NukeFlash()
 
 static uint32_t MPC5566_play()
 {
-	TAP_Config_host_t  config;
-	SIU_MIDR_BEONLE_t  SIU_MIDR;
-	uint32_t  data, retval, i;
-	uint16_t *ptr;
+    TAP_Config_host_t  config;
+    SIU_MIDR_BEONLE_t  SIU_MIDR;
+    uint32_t  data, retval, i;
+    uint16_t *ptr;
     uint16_t  readAddress[2];
 
     config.Frequency      = 24000000;
@@ -294,7 +294,7 @@ static uint32_t MPC5566_play()
     core_castText("CSP    :    %u", SIU_MIDR.CSP);
     core_castText("PKG    :    %x", SIU_MIDR.PKG);
     core_castText("MASKMAJ:    %x", SIU_MIDR.MASKNUM_MAJ);
-	core_castText("MASKMIN:    %x", SIU_MIDR.MASKNUM_MIN);
+    core_castText("MASKMIN:    %x", SIU_MIDR.MASKNUM_MIN);
 
     return 0;
     
@@ -489,11 +489,11 @@ uint32_t initMPC5566()
     wrk_queueReq( TAP_TargetInitPort() ); // Workaround for a known problem: Force return tap to jtagc
     wrk_queueReq( TAP_TargetReset() );
     wrk_queueReq( TAP_TargetReady() );
-	retval = wrk_sendQueue();
+    retval = wrk_sendQueue();
     if (retval != RET_OK) return retval;
 
     // return RET_OK;
-	return MPC5566_play();
+    return MPC5566_play();
     // return wrk_sendQueue();
 }
 

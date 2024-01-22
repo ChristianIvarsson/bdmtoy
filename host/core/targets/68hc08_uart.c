@@ -30,7 +30,7 @@ uint32_t initUARTMON()
     wrk_queueReq( TAP_TargetInitPort() ); // Workaround for a known problem: Force return tap to jtagc
     wrk_queueReq( TAP_TargetReset() );
     // wrk_queueReq( TAP_TargetReady() );
-	retval = wrk_sendQueue();
+    retval = wrk_sendQueue();
     if (retval != RET_OK) return retval;
     
     waitms(150);
@@ -39,8 +39,8 @@ uint32_t initUARTMON()
 
 uint32_t dumpUARTMON       (uint32_t Start, uint32_t Length)
 {
-	uint32_t  data = 0;
-	uint16_t *ptr;
+    uint32_t  data = 0;
+    uint16_t *ptr;
     uint32_t retval;
 
     wrk_newQueue( TAP_WriteByte(0x10000, 0xff) );
@@ -51,7 +51,7 @@ uint32_t dumpUARTMON       (uint32_t Start, uint32_t Length)
     wrk_queueReq( TAP_WriteByte(0x10000, 0xff) );
     wrk_queueReq( TAP_WriteByte(0x10000, 0xff) );
     wrk_queueReq( TAP_WriteByte(0x10000, 0xff) );
-	retval = wrk_sendQueue();
+    retval = wrk_sendQueue();
     if (retval != RET_OK) return retval;
 
 

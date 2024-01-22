@@ -17,12 +17,12 @@ extern "C" {
 // Effing weird controller...
 void **HCS12_ReadBDMAddress(uint8_t Address)
 {
-	return TAP_ReadByte(0x1FF00 + Address);
+    return TAP_ReadByte(0x1FF00 + Address);
 }
 
 void **HCS12_WriteBDMAddress(uint8_t Address, uint8_t Data)
 {
-	return TAP_WriteByte(0x1FF00 + Address, Data);
+    return TAP_WriteByte(0x1FF00 + Address, Data);
 }
 
 // TODO: Add timeout
@@ -45,10 +45,10 @@ uint32_t HCS12_WaitBDM()
 
 uint32_t HCS12_PrintRegSummary()
 {
-	uint16_t rPC,rSP,rD,rX,rY;
-	uint16_t *ptr;
+    uint16_t rPC,rSP,rD,rX,rY;
+    uint16_t *ptr;
 
-	// PC, SP
+    // PC, SP
     ptr = wrk_requestData( HCS12_ReadPC() );
     if (!ptr) return 0xFFFF;
     rPC = ptr[2];
