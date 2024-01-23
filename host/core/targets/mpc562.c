@@ -314,12 +314,12 @@ uint32_t initEDC16C39()
     return retval;
 }
 
-uint32_t flashC39(uint32_t Start, uint32_t Length, void *buffer)
+uint32_t flashC39(uint32_t Start, uint32_t Length, const void *buffer)
 {
     uint32_t  i, retval, formatmask = 0;
     uint32_t  curPart,totPart = 0;
     uint32_t *mdLocKeys, *mdRemKeys;
-    uint8_t  *bfr_  = buffer;
+    const uint8_t  *bfr_  = buffer;
     uint32_t  Strt_ = Start;
     clock_t   oldTime;
     uint32_t  tmp;
@@ -622,10 +622,10 @@ uint32_t readeepC39(uint32_t Start, uint32_t Length)
     return retval;
 }
 
-uint32_t writeeepC39(uint32_t Start, uint32_t Length, void *buffer)
+uint32_t writeeepC39(uint32_t Start, uint32_t Length, const void *buffer)
 {
     uint32_t retval;
-    uint16_t data, *ptr;
+    uint16_t data = 0, *ptr;
 
     retval = edc_initSPI();
     if (retval != RET_OK) return retval;

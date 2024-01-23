@@ -3,203 +3,207 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <pthread.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include "libusb.h"
+#else
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include "../../libusb/libusb/libusb.h"
+#endif
 
 #include "../../../shared/enums.h"
 #include "../../../shared/cmddesc.h"
 #include "../../core/core.h"
 
-#ifdef _WIN32
 
-#include <windows.h>
-#include "libusb.h"
 
-static HANDLE thread_id;
+#define NUM_INTERFACES   (2)
 
-#else
-
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <pthread.h>
-#include "../../libusb/libusb/libusb.h"
+#define IN_EP            (1)
+#define OUT_EP           (3)
 
 static pthread_t thread_id;
 
-#endif
-
-
-
-
-static struct libusb_transfer *transfer_in;
-static libusb_device_handle *handle;
+static libusb_device_handle *handle = NULL;
 static libusb_context *ctx = NULL;
 
-static uint8_t in_buffer[ADAPTER_BUFzOUT];
+static struct libusb_transfer *transfer_in = NULL;
+static struct libusb_transfer *transfer_out = NULL;
 
-static volatile uint32_t keepRunning = 1;
+static uint8_t in_buffer[ ADAPTER_BUFzOUT ]; // adapter -> host
+static uint8_t out_buffer[ ADAPTER_BUFzIN ]; // host -> adapter
+
+static volatile uint32_t keepRunning = 0;
+
+static volatile uint32_t sendBusy = 0;
 
 
+////////////////////////////////////////////////////////////////////
+// Comm. handling
 
-
-
-
-static void cb_in(struct libusb_transfer *transfer)
-{
-    core_HandleRecData(transfer->buffer, transfer->actual_length);
-    libusb_submit_transfer(transfer_in);
+static void usbSendCallback(struct libusb_transfer *transfer) {
+    sendBusy = 0;
+    if ( transfer->status != 0 )
+        printf("<USB send> Error code %s\n", libusb_error_name(transfer->status));
 }
 
-#if _WIN32
-DWORD WINAPI usb_AsyncThread(void *data)
-#else
-static void *usb_AsyncThread(void *vargp)
-#endif
+static void usbSendData(void *ptr, uint32_t toSend)
 {
-    printf("USB async. thread alive\n");
+    int retStatus;
 
-    while (keepRunning)
-    {
-        libusb_handle_events(ctx);
+    while ( sendBusy ){}
+    sendBusy = 1;
+
+    memcpy(out_buffer, ptr, toSend);
+    transfer_out->length = (int32_t)toSend;
+
+    if ((retStatus = libusb_submit_transfer( transfer_out )) != 0)
+        printf("<USB send> Error code %s\n", libusb_error_name(retStatus));
+}
+
+static void usbReceiveCallback(struct libusb_transfer *transfer)
+{
+    int retStatus;
+
+    if ( transfer->status != 0 && transfer->status != LIBUSB_TRANSFER_CANCELLED )
+        printf("<USB receive> Error code %s\n", libusb_error_name(transfer->status));
+
+    if ( transfer->actual_length >= 0 )
+        core_HandleRecData(transfer->buffer, (uint32_t)transfer->actual_length);
+
+    if ((retStatus = libusb_submit_transfer( transfer )) != 0)
+        printf("<USB receive> Error code %s\n", libusb_error_name(retStatus));
+}
+
+static void *usbAsyncThread(void *vargp)
+{
+    int retStatus;
+
+    keepRunning = 1;
+
+    while ( keepRunning ) {
+        if ( (retStatus = libusb_handle_events_completed( ctx, NULL )) != 0 )
+            printf("<USB evt loop> Error code %s\n", libusb_error_name(retStatus));
     }
 
-    printf("Async. thread going down\n");
-
-    // Just shut up..
-#if _WIN32
-    return 0;
-#else
     return NULL;
-#endif
 }
+
+////////////////////////////////////////////////////////////////////
+// Initialisation
 
 static uint32_t usb_OpenDevice()
 {
     int res;
 
-    if (libusb_init(&ctx) != 0)
-    {
-        printf("Could not initialize libusb\n");
-        return 0xFFFF;
+    if (libusb_init(&ctx) != 0) {
+        printf("Could not initialise libusb\n");
+        return RET_ABANDON;
     }
 
-    libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
+    // libUSB has a known race condition on windows.
+    // It wont affect this code but it will throw assertion messages if any sort of logging is enabled
+    libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_NONE);
 
     if ((handle = libusb_open_device_with_vid_pid(ctx, 0xFFFF, 0x0107)) == 0)
     {
         printf("Unable to open device.\n");
-        return 1;
+        return RET_ABANDON;
     }
 
-
-#ifndef _WIN32
-#warning "Go over this"
-    if (libusb_kernel_driver_active(handle, 0))
-    {
-        // res =
-        libusb_detach_kernel_driver(handle, 0);
-        /*
-        if (res < 0)
-        {
-            printf("Error detaching kernel driver.\n");
-            return 1;
-        }*/
-        /*if (res == 0)
-        {
-              // kernelDriverDetached = 1;
-        }
-        else
-        {
-              printf("Error detaching kernel driver.\n");
-              return 1;
-        }*/
-    }
-
-#else
+#ifdef _WIN32
     libusb_set_auto_detach_kernel_driver(handle, 1);
 #endif
 
-    for (int if_num = 0; if_num < 2; if_num++)
+    for (int i = 0; i < NUM_INTERFACES; i++)
     {
-        if (libusb_kernel_driver_active(handle, if_num))
+        if (libusb_kernel_driver_active(handle, i))
+            libusb_detach_kernel_driver(handle, i);
+
+        if ((res = libusb_claim_interface(handle, i)) != 0)
         {
-            libusb_detach_kernel_driver(handle, if_num);
-        }
-        res = libusb_claim_interface(handle, if_num);
-        if (handle < 0)
-        {
-            fprintf(stderr, "Error claiming interface: %s\n",
-                    libusb_error_name(res));
-            return 1;
+            printf("Error claiming interface: %s\n", libusb_error_name(res));
+            return RET_ABANDON;
         }
     }
 
     libusb_fill_bulk_transfer((transfer_in = libusb_alloc_transfer(0)),
-                              handle, LIBUSB_ENDPOINT_IN | 1,
+                              handle,
+                              LIBUSB_ENDPOINT_IN | IN_EP,
                               in_buffer,
                               ADAPTER_BUFzOUT,
-                              (libusb_transfer_cb_fn)&cb_in,
+                              usbReceiveCallback,
                               NULL,
                               0);
 
     libusb_submit_transfer(transfer_in);
 
+    // Prep transfer but don't submit it
+    libusb_fill_bulk_transfer((transfer_out = libusb_alloc_transfer(0)),
+                              handle,
+                              LIBUSB_ENDPOINT_OUT | OUT_EP,
+                              out_buffer,
+                              0,
+                              usbSendCallback,
+                              NULL,
+                              0);
+
     return RET_OK;
-}
-
-static void usb_SendArr(void *ptr, uint32_t noBytes)
-{
-    int numBytes;
-
-    if (libusb_bulk_transfer(handle,
-                             LIBUSB_ENDPOINT_OUT | 3,
-                             (unsigned char *)ptr,
-                             noBytes,
-                             &numBytes,
-                             2000) != 0 ||
-        noBytes != numBytes)
-    {
-        printf("Error sending message to device\n");
-    }
 }
 
 uint32_t usb_test()
 {
     int res;
 
-    printf("\nInitializing USB..\n");
+    printf("\nInitialising USB..\n");
 
-    res = usb_OpenDevice();
-
-    if (res != RET_OK)
+    if ((res = usb_OpenDevice()) != RET_OK)
     {
         printf("\nCould not connect to adapter\n");
         return res;
     }
 
     // Bring up asynchronous USB thread
-#ifdef _WIN32
-    thread_id = CreateThread(NULL, 0, usb_AsyncThread, NULL, 0, NULL);
-#else
-    pthread_create(&thread_id, NULL, usb_AsyncThread, NULL);
-#endif
+    pthread_create(&thread_id, NULL, usbAsyncThread, NULL);
 
     // Install pointer
-    core_InstallSendArray(&usb_SendArr);
+    core_InstallSendArray( usbSendData );
 
-    waitms(1000);
-    waitms(1000);
+    waitms(2000);
 
     return RET_OK;
 }
 
 uint32_t usb_CleanUp()
 {
-    keepRunning = 0;
+    if ( keepRunning ) {
 
-#ifdef _WIN32
-    TerminateThread(thread_id, 0);
-#else
-    pthread_join(thread_id, NULL);
-#endif
+        keepRunning = 0;
+
+        libusb_cancel_transfer( transfer_in );
+        libusb_cancel_transfer( transfer_out );
+
+        waitms( 100 );
+
+        libusb_close( handle );
+        pthread_join( thread_id, NULL );
+
+        libusb_free_transfer( transfer_in );
+        libusb_free_transfer( transfer_out );
+    }
+
+    if ( ctx != NULL )
+        libusb_exit(ctx);
+
+    transfer_out = NULL;
+    transfer_in = NULL;
+    handle = NULL;
+    ctx = NULL;
+
+    printf("USB shut down");
 
     return RET_OK;
 }

@@ -508,7 +508,7 @@ static void NEXUS_PrintFLASHCR()
     uint16_t *ptr = wrk_requestData( TAP_ReadDword(0xC3F88000) );
     if (!ptr) {
         core_castText("Could not dump data");
-        return 0xFFFF;
+        return;
     }
     core_castText("FlashMCR: %08X", ((*(uint32_t*)&ptr[2])));
 }
@@ -518,7 +518,7 @@ static void NEXUS_ReadRSR()
     uint16_t *ptr = wrk_requestData( TAP_ReadDword(0xC3F9000C) );
     if (!ptr) {
         core_castText("Could not dump data");
-        return 0xFFFF;
+        return;
     }
     core_castText("RSR: %08X", ByteSwap((*(uint32_t*)&ptr[2])));
 }

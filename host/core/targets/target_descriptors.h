@@ -22,11 +22,11 @@ extern "C" {
 trgTemplate Target_Trionic52 =
 { 0x000000, 0x020000,        // FLASH info  (Start, Length)
   0       , 0       ,        // EEPROM info (Start, Length)
-  0x100000, 0x008000,        // SRAM info   (Start, Length)
+  0x200000, 0x008000,        // SRAM info   (Start, Length)
   &initTrionic5     ,
   &flashTrionic     , &dumpGenericBE4,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
   TAP_IO_BDMOLD, 6000000
   , "Trionic 5.2"
@@ -36,26 +36,26 @@ trgTemplate Target_Trionic52 =
 trgTemplate Target_Trionic55 = 
 { 0x000000, 0x040000,        // FLASH info  (Start, Length)
   0       , 0       ,        // EEPROM info (Start, Length)
-  0x100000, 0x008000,        // SRAM info   (Start, Length)
+  0x200000, 0x008000,        // SRAM info   (Start, Length)
   &initTrionic5     ,
   &flashTrionic     , &dumpGenericBE4,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
   TAP_IO_BDMOLD, 6000000
   , "Trionic 5.5"
   , "MC68332, CPU32"
 };
 
-// Why not? Hardware can take it :D
+// Beefed up T5.5 (HW has enough address pins for two 256k chips)
 trgTemplate Target_Trionic57 = 
 { 0x000000, 0x080000,        // FLASH info  (Start, Length)
   0       , 0       ,        // EEPROM info (Start, Length)
-  0x100000, 0x008000,        // SRAM info   (Start, Length)
+  0x200000, 0x008000,        // SRAM info   (Start, Length)
   &initTrionic5     ,
   &flashTrionic     , &dumpGenericBE4,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
   TAP_IO_BDMOLD,  6000000
   , "Trionic 5 512K (You don't have this)"
@@ -65,11 +65,11 @@ trgTemplate Target_Trionic57 =
 trgTemplate Target_Trionic7 =
 { 0x000000, 0x080000,        // FLASH info  (Start, Length)
   0       , 0       ,        // EEPROM info (Start, Length)
-  0x100000, 0x010000,        // SRAM info   (Start, Length)
-  &initTrionic5     ,
+  0x200000, 0x010000,        // SRAM info   (Start, Length)
+  &initTrionic7     ,
   &flashTrionic     , &dumpGenericBE4,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
   TAP_IO_BDMOLD,  6000000
   , "Trionic 7"
@@ -83,9 +83,9 @@ trgTemplate Target_Trionic8_main =
   &initT8main       ,
   &flashTrionic     , &dumpGenericBE4,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
-  TAP_IO_BDMOLD, 12000000
+  TAP_IO_BDMOLD, 6000000
   , "Trionic 8; Main"
   , "MC68377, CPU32x"
 };
@@ -97,9 +97,9 @@ trgTemplate Target_Trionic8_mcp =
   &initT8mcp        ,
   &flashMCP         , &dumpMCP,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE4,
   0                 ,
-  TAP_IO_BDMOLD, 12000000
+  TAP_IO_BDMOLD, 3000000
   , "Trionic 8; MCP"
   , "MC68F375, CPU32"
 };
@@ -128,7 +128,7 @@ trgTemplate Target_SIU_SAAB95 =
   &initSIU95        ,
   &flashSID95       , &dumpSID95,
   &writeeepSID95    , &readeepSID95,
-  0                 , 0       ,
+  0                 , &dumpGenericBE2,
   0                 ,
   TAP_IO_BDMS, (4194000 / 2)
   , "9-5 SIU, MY06+"
@@ -142,7 +142,7 @@ trgTemplate Target_BMW_CLUSTERUNK =
   &initBMWcluster   ,
   0                 , &dumpBMWcluster,
   0                 , 0       ,
-  0                 , 0       ,
+  0                 , &dumpGenericBE2,
   0                 ,
   TAP_IO_BDMS, (4000000 / 2)
   , "BMW cluster, heck do I know"

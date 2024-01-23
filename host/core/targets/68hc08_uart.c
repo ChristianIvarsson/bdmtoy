@@ -39,7 +39,7 @@ uint32_t initUARTMON()
 
 uint32_t dumpUARTMON       (uint32_t Start, uint32_t Length)
 {
-    uint32_t  data = 0;
+    // uint32_t  data;
     uint16_t *ptr;
     uint32_t retval;
 
@@ -79,7 +79,7 @@ uint32_t dumpUARTMON       (uint32_t Start, uint32_t Length)
         core_castText("Could not read FLASH_MCR");
         return 0xFFFF;
     }
-    data = ByteSwap(*(uint32_t *) &ptr[2]);
+    // data = ByteSwap(*(uint32_t *) &ptr[2]);
     core_castText("FLASH_MCR: %02X", ptr[2]);
 
 
@@ -88,11 +88,8 @@ uint32_t dumpUARTMON       (uint32_t Start, uint32_t Length)
         core_castText("Could not read FLASH_MCR");
         return 0xFFFF;
     }
-    data = ByteSwap(*(uint32_t *) &ptr[2]);
+    // data = ByteSwap(*(uint32_t *) &ptr[2]);
     core_castText("FLASH_MCR: %02X", ptr[2]);
-
-
-
 
     return RET_OK;
 }

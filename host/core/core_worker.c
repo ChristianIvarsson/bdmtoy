@@ -4,6 +4,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include "core.h"
 #include "core_worker.h"
@@ -18,12 +19,6 @@ extern "C" {
 
 typedef void callbck (void);
 typedef void castprog(int percentage);
-typedef void sendarr (void *ptr, uint32_t noBytes);
-
-// Generic function. Returned value is either RET_OK for ok or anything else for corresponding fault
-typedef uint32_t genfunc (void);
-typedef uint32_t gendump (uint32_t Start, uint32_t Length);
-typedef uint32_t genflash(uint32_t Start, uint32_t Length, void *buffer);
 
 /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
@@ -39,10 +34,11 @@ static uint16_t filebuffer[FILEBUFFERsz/2];
 // static uint16_t readbuffer[1024];
 
 // Pointers to callback functions
-static void *callptr = 0, *progptr = 0 , *sendptr = 0;
+static void *callptr = 0, *progptr = 0;
+static usbSnd_t *usbSend = 0;
 
 // Internal function pointers
-static void *initptr = 0, *flashptr = 0, *dumpptr = 0, *dumpsramptr = 0,*eepwriteptr = 0, *eepreadptr = 0;
+static fnGen_t *initptr = 0;
 
 static struct {
              // To adapter
@@ -160,13 +156,12 @@ static uint32_t wrk_SendArray(void *ptr)
         wrk_status.lastFault = RET_MALFORMED;
         return RET_MALFORMED;
     }
-    if (sendptr != 0)
+    if (usbSend != 0)
     {
-        sendarr *senddata = (sendarr *) sendptr;
         wrk_queue.Busy = 1;
         // word[1] states how many commands are queued
         wrk_queue.queuedcommands = arr[1]; // wrk_queue.ReqArray[1];
-        senddata(ptr, arr[0] * 2);
+        usbSend(ptr, arr[0] * 2);
         return RET_OK;
     }
     
@@ -220,12 +215,7 @@ static void wrk_resetInternals(const uint32_t index)
     wrk_resetQueueParam();
 
     // We can't set all parameters from here..
-    initptr     = (void *)targetstruc->initcode;
-    flashptr    = (void *)targetstruc->flashcode;
-    dumpptr     = (void *)targetstruc->dumpcode;
-    dumpsramptr = (void *)targetstruc->srmread;
-    eepwriteptr = (void *)targetstruc->eepwrite;
-    eepreadptr  = (void *)targetstruc->eepread;
+    initptr     = targetstruc->initcode;
 
     timeoutval  = GLOBALTIMEOUT;
     manProg     = 0;
@@ -238,62 +228,8 @@ static void wrk_resetInternals(const uint32_t index)
 //  Jump to init code if pointer has been installed
 static uint32_t jmp_InitTarget()
 {
-    if (initptr != 0) {
-        genfunc *initcode = (genfunc *) initptr;
-        return initcode();
-    }
-
-    return RET_NOTINS;
-}
-
-// Ditto for dump
-static uint32_t jmp_DumpTarget(uint32_t Start, uint32_t Length)
-{
-    if (dumpptr != 0) {
-        gendump *dumpcode = (gendump *) dumpptr;
-        return dumpcode(Start, Length);
-    }
-
-    return RET_NOTINS;
-}
-
-static uint32_t jmp_DumpSRAMTarget(uint32_t Start, uint32_t Length)
-{
-    if (dumpsramptr != 0) {
-        gendump *dumpcode = (gendump *) dumpsramptr;
-        return dumpcode(Start, Length);
-    }
-
-    return RET_NOTINS;
-}
-
-static uint32_t jmp_FlashTarget(uint32_t Start, uint32_t Length, void *buffer)
-{
-    if (flashptr != 0) {
-        genflash *flashcode = (genflash *) flashptr;
-        return flashcode(Start, Length, buffer);
-    }
-
-    return RET_NOTINS;
-}
-
-static uint32_t jmp_ReadEepTarget(uint32_t Start, uint32_t Length)
-{
-    if (eepreadptr != 0) {
-        gendump *dumpcode = (gendump *) eepreadptr;
-        return dumpcode(Start, Length);
-    }
-
-    return RET_NOTINS;
-}
-
-static uint32_t jmp_WriteEepTarget(uint32_t Start, uint32_t Length, void *buffer)
-{
-    if (eepwriteptr != 0) {
-        genflash *flashcode = (genflash *) eepwriteptr;
-        return flashcode(Start, Length, buffer);
-    }
-
+    if (initptr != 0)
+        return initptr();
     return RET_NOTINS;
 }
 
@@ -434,9 +370,9 @@ void core_InstallProgress(const void *funcptr)
     progptr = (void *)funcptr;
 }
 
-void core_InstallSendArray(const void *funcptr)
+void core_InstallSendArray(usbSnd_t *funcptr)
 {
-    sendptr = (void *)funcptr;
+    usbSend = funcptr;
 }
 
 /////////////////////////////////////////////////////////////
@@ -518,10 +454,9 @@ static __inline void wrk_sendFlashdata(uint16_t *recdata)
 static __inline void wrk_recDump(uint16_t *recdata)
 {
     uint16_t *temppntr = (uint16_t *) &recdata[5];
-    uint16_t  noWords  = recdata[0] - 5;
-    uint_fast16_t  i;
+    uint32_t  noWords  = recdata[0] - 5, i;
 
-    // Come one.. You sent a header but no data?!
+    // Come on.. You sent a header but no data?!
     if (recdata[0] < 6)
     {
         core_castText("Dump rec'd: %u (%08X : %08X)", recdata[0], *(uint32_t *) &recdata[3], wrk_state.expectAddr);
@@ -536,7 +471,7 @@ static __inline void wrk_recDump(uint16_t *recdata)
         wrk_status.lastFault = RET_FRAMEDROP;
         return;
     }
-    
+
     // Update time since last. This'll make other functions wait indefinitely while dumping
     wrk_CaptureCurreTime();
     
@@ -557,9 +492,7 @@ static __inline void wrk_scanQueue(uint16_t *recdata)
     uint16_t *ptr    = (uint16_t *) &recdata[1];
     uint32_t Len     = recdata[0];
     uint32_t noRec   = 0;
-    uint16_t reqLen;
-    uint16_t status;
-    uint16_t req;
+    uint16_t reqLen, status, req;
     uint32_t i;
     
     // ..
@@ -681,14 +614,17 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
 
     // We count in words, not bytes.
     recLen /= 2;
-    
+
+    if (recLen == 0)
+        return;
+
     // Not expecting anything!
     if (wrk_queue.Busy == 0)
         return;
 
     if (wrk_state.multiframe == 0)
     {
-        destptr = &temp[0];
+        destptr = temp;
         wrk_state.expectLen = recdata[0];
         
         if (wrk_state.expectLen > recLen)
@@ -701,10 +637,10 @@ void core_HandleRecData(const void *bufin, uint32_t recLen)
         wrk_status.lastFault = RET_MALFORMED;
         return;
     }
-    // Copy received data to a local buffer
-    for (i = 0; i < recLen; i++)
-        *destptr++ = *recdata++;
-    
+
+    memcpy(destptr, bufin, recLen * 2);
+    destptr += recLen;
+
     wrk_state.expectLen -= (wrk_state.expectLen >= recLen) ? 
         recLen :             // Only decrement number of words that was received
         wrk_state.expectLen; // No more words left
@@ -761,22 +697,92 @@ void core_DumpSRAM(const uint32_t index)
         return;
     }
 
+    if (TARGET->dumpSram == 0) {
+        wrk_flagFault(RET_NOPTR);
+        return;
+    }
+
     wrk_resetInternals(index);
     wrk_state.startAddr  = TARGET->SRAM_Address;
     wrk_state.expectAddr = TARGET->SRAM_Address;
     wrk_state.lastAddr   = TARGET->SRAM_Address + TARGET->SRAM_NoBytes;
 
     // Call init code
-    status = jmp_InitTarget();
-
-    if (status != RET_OK) {
+    if ((status = jmp_InitTarget()) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
 
     // Call dump code
-    status = jmp_DumpSRAMTarget(TARGET->SRAM_Address, TARGET->SRAM_NoBytes);
-    if (status != RET_OK) {
+    if ((status = TARGET->dumpSram(TARGET->SRAM_Address, TARGET->SRAM_NoBytes)) != RET_OK) {
+        wrk_flagFault(status);
+        return;
+    }
+
+    wrk_flagDone();
+}
+
+void core_WriteSRAM(const uint32_t index, const void *data)
+{
+    trgTemplate *TARGET = (trgTemplate *) supportedTargets[index];
+    uint32_t  status;
+
+    if (index > core_NoTargets() || index == 0) {
+        wrk_flagFault(RET_BOUNDS);
+        return;
+    }
+
+    if (TARGET->writeSram == 0) {
+        wrk_flagFault(RET_NOPTR);
+        return;
+    }
+
+    wrk_resetInternals(index);
+    wrk_state.startAddr  = TARGET->SRAM_Address;
+    wrk_state.expectAddr = TARGET->SRAM_Address;
+    wrk_state.lastAddr   = TARGET->SRAM_Address + TARGET->SRAM_NoBytes;
+
+    // Call init code
+    if ((status = jmp_InitTarget()) != RET_OK) {
+        wrk_flagFault(status);
+        return;
+    }
+
+    if ((TARGET->writeSram(TARGET->SRAM_Address, TARGET->SRAM_NoBytes, data)) != RET_OK) {
+        wrk_flagFault(status);
+        return;
+    }
+
+    wrk_flagDone();
+}
+
+void core_WriteSRAMcust(const uint32_t index, const void *data, const uint32_t address, const uint32_t len)
+{
+    trgTemplate *TARGET = (trgTemplate *) supportedTargets[index];
+    uint32_t  status;
+
+    if (index > core_NoTargets() || index == 0) {
+        wrk_flagFault(RET_BOUNDS);
+        return;
+    }
+
+    if (TARGET->writeSram == 0) {
+        wrk_flagFault(RET_NOPTR);
+        return;
+    }
+
+    wrk_resetInternals(index);
+    wrk_state.startAddr  = (uint32_t)address;
+    wrk_state.expectAddr = (uint32_t)address;
+    wrk_state.lastAddr   = (uint32_t)address + len;
+
+    // Call init code
+    if ((status = jmp_InitTarget()) != RET_OK) {
+        wrk_flagFault(status);
+        return;
+    }
+
+    if ((TARGET->writeSram(address, len, data)) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
@@ -795,22 +801,24 @@ void core_DumpFLASH(const uint32_t index)
         return;
     }
 
+    if (TARGET->dumpFlash == 0) {
+        wrk_flagFault(RET_NOPTR);
+        return;
+    }
+
     wrk_resetInternals(index);
     wrk_state.startAddr  = TARGET->FLASH_Address;
     wrk_state.expectAddr = TARGET->FLASH_Address;
     wrk_state.lastAddr   = TARGET->FLASH_Address + TARGET->FLASH_NoBytes;
 
     // Call init code
-    status = jmp_InitTarget();
-
-    if (status != RET_OK) {
+    if ((status = jmp_InitTarget()) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
 
     // Call dump code
-    status = jmp_DumpTarget(TARGET->FLASH_Address, TARGET->FLASH_NoBytes);
-    if (status != RET_OK) {
+    if ((status = TARGET->dumpFlash(TARGET->FLASH_Address, TARGET->FLASH_NoBytes)) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
@@ -818,16 +826,18 @@ void core_DumpFLASH(const uint32_t index)
     wrk_flagDone();
 }
 
-void core_FLASH(const uint32_t index, void *data)
+void core_FLASH(const uint32_t index, const void *data)
 {
     trgTemplate *TARGET = (trgTemplate *) supportedTargets[index];
-    uint8_t  *outPtr = (uint8_t *) &filebuffer[0];
-    uint8_t  *inPtr  = (uint8_t *) data;
     uint32_t  status;
-    uint32_t  i;
 
     if (index > core_NoTargets() || index == 0) {
         wrk_flagFault(RET_BOUNDS);
+        return;
+    }
+
+    if (TARGET->writeFlash == 0) {
+        wrk_flagFault(RET_NOPTR);
         return;
     }
 
@@ -837,20 +847,17 @@ void core_FLASH(const uint32_t index, void *data)
     wrk_state.lastAddr   = TARGET->FLASH_Address + TARGET->FLASH_NoBytes;
 
     // Copy to our local buffer.
-    for (i = 0; i < TARGET->FLASH_NoBytes; i++)
-        *outPtr++= *inPtr++;
+    if (TARGET->FLASH_NoBytes)
+        memcpy(filebuffer, data, TARGET->FLASH_NoBytes);
 
     // Call init code
-    status = jmp_InitTarget();
-
-    if (status != RET_OK) {
+    if ((status = jmp_InitTarget()) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
 
     // Call flash code
-    status = jmp_FlashTarget(TARGET->FLASH_Address, TARGET->FLASH_NoBytes, &filebuffer[0]);
-    if (status != RET_OK) {
+    if ((status = TARGET->writeFlash(TARGET->FLASH_Address, TARGET->FLASH_NoBytes, filebuffer)) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
@@ -869,22 +876,24 @@ void core_DumpEEPROM(const uint32_t index)
         return;
     }
 
+    if (TARGET->dumpEep == 0) {
+        wrk_flagFault(RET_NOPTR);
+        return;
+    }
+
     wrk_resetInternals(index);
     wrk_state.startAddr  = TARGET->EEPROM_Address;
     wrk_state.expectAddr = TARGET->EEPROM_Address;
     wrk_state.lastAddr   = TARGET->EEPROM_Address + TARGET->EEPROM_NoBytes;
 
     // Call init code
-    status = jmp_InitTarget();
-
-    if (status != RET_OK) {
+    if ((status = jmp_InitTarget()) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
 
     // Call dump code
-    status = jmp_ReadEepTarget(TARGET->EEPROM_Address, TARGET->EEPROM_NoBytes);
-    if (status != RET_OK) {
+    if ((status = TARGET->dumpEep(TARGET->EEPROM_Address, TARGET->EEPROM_NoBytes)) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
@@ -892,16 +901,18 @@ void core_DumpEEPROM(const uint32_t index)
     wrk_flagDone();
 }
 
-void core_WriteEEPROM(const uint32_t index, void *data)
+void core_WriteEEPROM(const uint32_t index, const void *data)
 {
     trgTemplate *TARGET = (trgTemplate *) supportedTargets[index];
-    uint8_t  *outPtr = (uint8_t *) &filebuffer[0];
-    uint8_t  *inPtr  = (uint8_t *) data;
     uint32_t  status;
-    uint32_t  i;
 
     if (index > core_NoTargets() || index == 0) {
         wrk_flagFault(RET_BOUNDS);
+        return;
+    }
+
+    if (TARGET->writeEep == 0) {
+        wrk_flagFault(RET_NOPTR);
         return;
     }
 
@@ -911,20 +922,17 @@ void core_WriteEEPROM(const uint32_t index, void *data)
     wrk_state.lastAddr   = TARGET->EEPROM_Address + TARGET->EEPROM_NoBytes;
 
     // Copy to our local buffer.
-    for (i = 0; i < TARGET->EEPROM_NoBytes; i++)
-        *outPtr++= *inPtr++;
+    if (TARGET->EEPROM_NoBytes)
+        memcpy(filebuffer, data, TARGET->EEPROM_NoBytes);
 
     // Call init code
-    status = jmp_InitTarget();
-
-    if (status != RET_OK) {
+    if ((status = jmp_InitTarget()) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
 
     // Call flash code
-    status = jmp_WriteEepTarget(TARGET->EEPROM_Address, TARGET->EEPROM_NoBytes, &filebuffer[0]);
-    if (status != RET_OK) {
+    if ((status = TARGET->writeEep(TARGET->EEPROM_Address, TARGET->EEPROM_NoBytes, filebuffer)) != RET_OK) {
         wrk_flagFault(status);
         return;
     }
@@ -1183,23 +1191,23 @@ uint16_t *wrk_requestData(void *payloadptr)
 
 uint32_t wrk_openFile(const char *fname)
 {
-	size_t fileSize, actRead;
-	FILE * fp  = fopen(fname, "rb");
+    size_t fileSize, actRead;
+    FILE * fp  = fopen(fname, "rb");
     
     if (!fp)
         return 0;
 
     fseek(fp, 0L, SEEK_END);
-	fileSize = ftell(fp);
+    fileSize = ftell(fp);
     rewind(fp);
 
-	if (fileSize == 0 || fileSize > FILEBUFFERsz)
-	{
-		fclose(fp);
-		return 0;
-	}
+    if (fileSize == 0 || fileSize > FILEBUFFERsz)
+    {
+        fclose(fp);
+        return 0;
+    }
 
-	actRead = fread(filebuffer, 1, fileSize, fp);
+    actRead = fread(filebuffer, 1, fileSize, fp);
 
     fclose(fp);
 
@@ -1208,21 +1216,21 @@ uint32_t wrk_openFile(const char *fname)
 
 uint32_t wrk_writeFile(const char *fname, const uint32_t noBytes)
 {
-	size_t actWrite;
-	FILE *fp = fopen(fname, "wb");
+    size_t actWrite;
+    FILE *fp = fopen(fname, "wb");
     
     if (!fp)
         return 0xffff;
 
-	if (noBytes == 0 || noBytes > FILEBUFFERsz)
-	{
-		fclose(fp);
-		return 0xffff;
-	}
+    if (noBytes == 0 || noBytes > FILEBUFFERsz)
+    {
+        fclose(fp);
+        return 0xffff;
+    }
 
     rewind(fp);
 
-	actWrite = fwrite(filebuffer, 1, (size_t)noBytes, fp);
+    actWrite = fwrite(filebuffer, 1, (size_t)noBytes, fp);
 
     fclose(fp);
 

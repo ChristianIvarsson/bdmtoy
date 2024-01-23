@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 uint32_t usb_test();
-
+uint32_t usb_CleanUp();
 
 #ifdef __cplusplus 
 }

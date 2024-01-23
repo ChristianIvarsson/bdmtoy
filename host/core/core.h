@@ -17,6 +17,12 @@ extern "C" {
 
 #define CoreVersion "mcGizmo v00.00.00.0"
 
+typedef void     usbSnd_t (void *ptr, uint32_t noBytes);
+
+typedef uint32_t fnDump_t (uint32_t address, uint32_t length);
+typedef uint32_t fnWrte_t (uint32_t address, uint32_t length, const void *data);
+typedef uint32_t fnGen_t  (void);
+
 // Last resort solution for now..
 extern const uint32_t numberoftargets_;
 
@@ -48,19 +54,19 @@ typedef const struct
     const uint32_t SRAM_NoBytes;   // How much SRAM does it have?
 
     // Core parameters
-    const void     *initcode;      // Which function to jump to to initialize the target
+    fnGen_t  *const initcode;      // Which function to jump to to initialize the target
     // FLASH
-    const void     *flashcode;     // Which function to use for flashing
-    const void     *dumpcode;      // Which function to use for dumping
+    fnWrte_t *const writeFlash;    // Which function to use for flashing
+    fnDump_t *const dumpFlash;     // Which function to use for dumping
     // EEPROM
-    const void     *eepwrite;      // Which function to use for writing
-    const void     *eepread;       // Which function to use for reading
+    fnWrte_t *const writeEep;      // Which function to use for writing
+    fnDump_t *const dumpEep;       // Which function to use for reading
     // SRAM
-    const void     *srmwrite;      // Which function to use for writing
-    const void     *srmread;       // Which function to use for reading
+    fnWrte_t *const writeSram;     // Which function to use for writing
+    fnDump_t *const dumpSram;      // Which function to use for reading
 
     // Debug pointer
-    debug_td       *debug;        // Which STRUCTURE to fetch info from
+    debug_td       *debug;         // Which STRUCTURE to fetch info from
     
     // TAP parameters
     const uint16_t TAP_drive;      // Which TAP interface to use
@@ -71,25 +77,12 @@ typedef const struct
     const char     *info[1];        // Target type (Pointer, ignore the size. Just don't use memcpy or some stupid stuff)
 } trgTemplate;
 
-// Some abuse right here
-#define targetDefaultValues \
-    .FLASH_Address  = 0, .FLASH_NoBytes  = 0, \
-    .EEPROM_Address = 0, .EEPROM_NoBytes = 0, \
-    .SRAM_Address   = 0, .SRAM_NoBytes   = 0, \
-    .initcode       = 0, \
-    .flashcode      = 0, .dumpcode       = 0, \
-    .eepwrite       = 0, .eepread        = 0, \
-    .srmwrite       = 0, .srmread        = 0, \
-    .debug          = 0, \
-    .TAP_drive      = 0, .TAP_speed      = 0, \
-    .name           ="", .info           ="",
-
 // Core, setup/init/target info
 const char    *core_VersionString();                        // Return version string
       void     core_InstallCallback (const void *funcptr);  // Worker must know where to jump to in case it wants something.
       void     core_InstallProgress (const void *funcptr);  // Of less concern. Forward progress to this pointer
       void     core_InstallMessage  (      void *funcptr);  // Of less concern.
-      void     core_InstallSendArray(const void *funcptr);  //
+      void     core_InstallSendArray(usbSnd_t   *funcptr);  //
       void     core_castText        (const char *str,...);  // If possible, forward text messages to host app.
       uint32_t core_NoTargets();                            // Call this one before any of the preceding commands.
       void     core_PrintInfo       (const uint32_t index);
@@ -102,8 +95,10 @@ const char    *core_TargetInfo      (const uint32_t index); // ...
       void     core_DumpFLASH       (const uint32_t index);
       void     core_DumpEEPROM      (const uint32_t index);        
       void     core_DumpSRAM        (const uint32_t index);
-      void     core_FLASH           (const uint32_t index, void *data);
-      void     core_WriteEEPROM     (const uint32_t index, void *data);
+      void     core_FLASH           (const uint32_t index, const void *data);
+      void     core_WriteEEPROM     (const uint32_t index, const void *data);
+      void     core_WriteSRAM       (const uint32_t index, const void *data);
+      void     core_WriteSRAMcust   (const uint32_t index, const void *data, const uint32_t address, const uint32_t len);
 // Worker functions:
       void     core_HandleRecData  (const void *bufin, uint32_t recLen);
       uint32_t core_ReturnWorkStatus();                     // Return 1 if work completed successfully
