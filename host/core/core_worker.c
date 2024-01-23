@@ -472,6 +472,8 @@ static __inline void wrk_recDump(uint16_t *recdata)
         return;
     }
 
+    // waitms( 50 );
+
     // Update time since last. This'll make other functions wait indefinitely while dumping
     wrk_CaptureCurreTime();
     
