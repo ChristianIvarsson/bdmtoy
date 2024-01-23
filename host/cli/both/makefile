@@ -1,14 +1,14 @@
 CC=gcc
 
 APP=debugtool
-CFLAGS= -pthread -O1
+
+CFLAGS=-O1 -Wno-unused-function -Wno-unused-variable -pthread
+LDFLAGS=-lusb-1.0 -lpthread
 
 ifeq ($(OS),Windows_NT)
-LIBUSBVER=libusb-MinGW-x64
-LDFLAGS= -m64 -L../shared/libs/win/$(LIBUSBVER)/lib -lusb-1.0 -lpthread
-CFLAGS+= -m64 -I../shared/libs/win/$(LIBUSBVER)/include/libusb-1.0
-else
-LDFLAGS=-lusb-1.0 -lpthread
+LIBUSBVER=MinGW64
+LDFLAGS+= -m64 -L../shared/libs/win/$(LIBUSBVER)/static
+CFLAGS+= -m64 -I../shared/libs/win/include
 endif
 
 .PHONY: all clean
