@@ -27,13 +27,10 @@ static void callback() {
     }
 }
 
-// Target 7
 int32_t validFilename(char *filename)
 {
     if (!filename)
         return -1;
-    // else if (strstr(filename, "-"))
-    //     return -1;
     return 0;
 }
 
@@ -66,7 +63,7 @@ uint32_t dumpSram(uint32_t target, char *filename)
     runDamnit();
 
     if (core_ReturnFaultStatus() == 0)
-        return wrk_writeFile(filename, core_TargetSizeFLASH(target));
+        return wrk_writeFile(filename, core_TargetSizeSRAM(target));
 
     return core_ReturnFaultStatus();
 }
