@@ -1,6 +1,7 @@
 
 # Editor settings etc
 .*
+!.gitkeep
 
 # Build artefacts
 *.o
