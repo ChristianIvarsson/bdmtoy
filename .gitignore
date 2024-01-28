@@ -15,6 +15,11 @@
 # Doing by file type would exclude too much
 bin2header.exe
 
+/host/cli/both/*.bin
+/host/cli/both/*.exe
+/host_mk2/cli/both/*.bin
+/host_mk2/cli/both/*.exe
+
 # Only working on rp2040, requires a level shifter and only oldschool bdm is kinda working.
 # It'll be included once all three versions of BDM are working
 /firmware_mk2
