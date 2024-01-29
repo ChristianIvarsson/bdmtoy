@@ -54,7 +54,7 @@ void bdmworker::setFlags( const uint16_t *rx ) {
     }
 
     core.castMessage((rx[2] == RET_OK) ? "Info: Driver done" : "Error: Adapter flagged a fault");
-    core.castMessage("Flag: %04X", rx[3]);
+    core.castMessage("Info: Flag: %04X", rx[3]);
     flagStatus( rx[2] );
 }
 

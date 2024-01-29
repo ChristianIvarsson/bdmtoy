@@ -98,14 +98,13 @@ protected:
             return false;
         }
 
+        flashType = *(uint32_t *) &idTemp[4];
+        flashSize = *(uint32_t *) &idTemp[6];
+
         core.castMessage("Info: MID      %02X", (idTemp[0]>>8)&0xFF);
         core.castMessage("Info: DID      %02X", (idTemp[0])   &0xFF);
         core.castMessage("Info: EID    %04X"  ,  idTemp[2]);
-        // core.castMessage("Info: Type     %02X", *(uint32_t *) &idTemp[4]);
-        core.castMessage("Info: size %06X"    , *(uint32_t *) &idTemp[6]); 
-
-        flashType = *(uint32_t *) &idTemp[4];
-        flashSize = *(uint32_t *) &idTemp[6];
+        core.castMessage("Info: size %06X"    ,  flashSize); 
 
         switch ( flashType ) {
         case 1:  core.castMessage("Info: Old H/W flash"); break;
