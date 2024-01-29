@@ -10,6 +10,14 @@
 
 #include "drivers/CPU32/trionic/txdriver.h"
 
+enum txFamily : uint32_t {
+    txGeneric = 0,
+    txTrionic5,
+    txTrionic7,
+    txTrionic8,
+    txTrionic8mcp
+};
+
 class iTrionic
     : public requests_cpu32 {
 
@@ -63,7 +71,7 @@ class iTrionic
     }
 
 protected:
-    bool writeFlash( const target_t *, const memory_t * ) {
+    bool writeFlash( txFamily gen, const target_t *, const memory_t * ) {
 
         uint16_t idTemp[ 8 ];
         uint32_t flashType, flashSize;
@@ -113,25 +121,29 @@ protected:
         default: core.castMessage("Error: Driver does not understand this flash"); return false;
         }
 
+        if ( gen == txTrionic5 || gen == txTrionic7 ) {
+
+            size_t minAllow = (gen == txTrionic5) ? 0x20000 : 0x080000;
+            size_t maxAllow = (gen == txTrionic5) ? 0x80000 : 0x100000;
+
+            if ( flashSize < minAllow || flashSize > maxAllow ) {
+                core.castMessage("Error: Not seeing the correct flash size for this ECU");
+                return false;
+            }
+
+            if ( core.fileSize < flashSize ) {
+                core.castMessage("Info: File is too small. Checking if it can be mirrored..");
+                if ( core.mirrorReadFile( flashSize ) == false )
+                    return false;
+                core.castMessage("Info: It could! Let's go");
+            }
+        }
+
+        // Core will automatically increment fileSize while mirroring
         if ( core.fileSize != flashSize ) {
             core.castMessage("Error: File size does not match expected size");
             return false;
         }
-
-        /*
-        if (core.fileSize > flashSize)
-        {
-            core.castMessage("It looks like your file is too big for the target. Aborting..");
-            return false;
-        }
-        // Only do this on T5 and T7, the ones where it's actually possible to add more flash. Implement checks before adding the other ones!
-        else if ( core.fileSize < flashSize ) {
-            core.castMessage("Info: File is too small. Checking if it can be mirrored..");
-            if ( core.mirrorReadFile( flashSize ) == false )
-                return false;
-            core.castMessage("Info: It could! Let's go");
-        }
-        */
 
         // Notify worker about our intended address range
         memSpec.size = flashSize;
@@ -164,6 +176,7 @@ protected:
 public:
     iTrionic(bdmstuff & p)
         : requests_cpu32(p) { }
+    ~iTrionic() { }
 
     virtual bool read(const target_t *, const memory_t *mem) {
         if ( core.queue.send( assistDump( mem->address, mem->size ) ) == false ) {
@@ -175,11 +188,9 @@ public:
 
     virtual bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return writeFlash( target, region );
+            return writeFlash( txGeneric, target, region );
         return false;
     }
-
-    ~iTrionic() { }
 };
 
 class trionic_5
@@ -188,6 +199,89 @@ public:
     trionic_5( bdmstuff & core )
         : iTrionic( core ) { }
     ~trionic_5() { }
+
+    bool init(const target_t *, const memory_t *)
+    {
+        TAP_Config_host_t config;
+        uint16_t buf[ 4 ];
+
+        core.castMessage("Info: trionic_5::init");
+
+        config.Type = TAP_IO_BDMOLD;
+        config.Frequency = 1500000;
+        config.cfgmask.Endian = TAP_BIGENDIAN;
+
+        // Interface config
+        core.queue  = setInterface( config );
+        core.queue += targetReset();
+        core.queue += targetReady();
+        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 ); // Core CPU32 configuration
+        core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
+        core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
+        core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
+        if ( core.queue.send() == false ) return false;
+
+        ////////////////////////////////////////////////////////////////////
+        // Configure chip select and base of all memory mapped, external, devices.
+
+        core.queue  = writeMemory( 0xfffa44, 0x3FFB, sizeWord ); // CSPAR0  - ~
+        core.queue += writeMemory( 0xfffa46, 0x0003, sizeWord ); // CSPAR1  - ~
+        core.queue += writeMemory( 0xfffa48, 0x0007, sizeWord ); // CSBARBT - Flash. Base 00_0000, size 1M
+        core.queue += writeMemory( 0xfffa4a, 0x6870, sizeWord ); // CSORBT  - ~
+        core.queue += writeMemory( 0xfffa4c, 0x2007, sizeWord ); // CSBAR0  - SRAM.  Base 20_0000, size 1M
+        core.queue += writeMemory( 0xFFFA4E, 0x7870, sizeWord ); // CSOR0   - ~
+        core.queue += writeMemory( 0xfffa50, 0x0007, sizeWord ); // CSBAR1  - Flash. Base 00_0000, size 1M
+        core.queue += writeMemory( 0xfffa52, 0x30F0, sizeWord ); // CSOR1   - ~
+        core.queue += writeMemory( 0xFFFA54, 0x0007, sizeWord ); // CSBAR2  - Flash. Base 00_0000, size 1M
+        core.queue += writeMemory( 0xFFFA56, 0x50F0, sizeWord ); // CSOR2   - ~
+        if ( core.queue.send() == false ) return false;
+
+        core.queue  = writeMemory( 0xFFFA58, 0xF000, sizeWord ); // CSBAR3  - ~
+        core.queue += writeMemory( 0xFFFA5A, 0x77F0, sizeWord ); // CSOR3   - ~
+        core.queue += writeMemory( 0xFFFA5C, 0xF008, sizeWord ); // CSBAR4  - ~
+        core.queue += writeMemory( 0xFFFA5E, 0x6BF0, sizeWord ); // CSOR4   - ~
+        core.queue += writeMemory( 0xFFFA60, 0xF008, sizeWord ); // CSBAR5  - ~
+        core.queue += writeMemory( 0xFFFA62, 0x73F0, sizeWord ); // CSOR5   - ~
+        core.queue += writeMemory( 0xFFFA64, 0xF001, sizeWord ); // CSBAR6  - ~
+        core.queue += writeMemory( 0xFFFA66, 0x7A30, sizeWord ); // CSOR6   - ~
+
+        core.queue += writeMemory( 0xFFFA68, 0xFFF8, sizeWord ); // CSBAR7  - ~
+        core.queue += writeMemory( 0xFFFA6A, 0xABC7, sizeWord ); // CSOR7   - ~
+        if ( core.queue.send() == false ) return false;
+
+        core.queue  = writeMemory( 0xFFFB04, 0x1000, sizeWord ); // TPURAM at 10_0000
+        core.queue += writeMemory( 0xFFFA1F, 0x0008, sizeByte ); // PortE
+        core.queue += writeMemory( 0xFFFA1B, 0x00f8, sizeByte );
+        core.queue += writeMemory( 0xFFFA1D, 0x00f5, sizeByte );
+        if ( core.queue.send() == false ) return false;
+
+        core.queue  = readMemory( 0x000000, sizeDword ); // Flash
+        core.queue += readMemory( 0x100000, sizeWord  ); // TPURAM
+        core.queue += readMemory( 0x200000, sizeWord  ); // SRAM
+        if ( core.queue.send() == false ) {
+            core.castMessage("Info: trionic_5::init - Unable to perform read check on memory regions");
+            return false;
+        }
+
+        if ( core.getData( &buf[0], TAP_DO_READMEMORY, 4, 0 ) &&
+             core.getData( &buf[2], TAP_DO_READMEMORY, 2, 1 ) &&
+             core.getData( &buf[3], TAP_DO_READMEMORY, 2, 2 ) ) {
+            for ( uint32_t i = 0; i < 4; i++ )
+                core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
+        } else {
+            core.castMessage("Info: trionic_7::init - Unable to retrieve read checks from memory regions");
+            return false;
+        }
+
+        config.Frequency = 6000000;
+        return core.queue.send( setInterface( config ) );
+    }
+
+    bool write( const target_t *target , const memory_t *region ) {
+        if ( region->type == opFlash )
+            return writeFlash( txTrionic5, target, region );
+        return false;
+    }
 };
 
 class trionic_7
@@ -195,6 +289,13 @@ class trionic_7
 public:
     trionic_7(bdmstuff &core)
         : iTrionic(core) { }
+    ~trionic_7() { }
+
+    bool write( const target_t *target , const memory_t *region ) {
+        if ( region->type == opFlash )
+            return writeFlash( txTrionic7, target, region );
+        return false;
+    }
 
     bool init(const target_t *, const memory_t *)
     {
@@ -270,8 +371,6 @@ public:
         config.Frequency = 6000000;
         return core.queue.send( setInterface( config ) );
     }
-
-    ~trionic_7() { }
 };
 
 iTarget *instTrionic5(bdmstuff &core) {

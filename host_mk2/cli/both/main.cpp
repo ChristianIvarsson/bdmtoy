@@ -9,12 +9,8 @@
 #include "tools.h"
 
 class m_stuff : public bdmstuff {
-
 public:
-    void castProgress(int32_t) {
-
-    }
-
+    void castProgress(int32_t) { }
     void castMessage(const char *str,...) {
         char tmp[256];
         va_list ap;
@@ -23,7 +19,6 @@ public:
             printf("%s\n", tmp);
         va_end(ap);
     }
-
     ~m_stuff() {
         printf("m_stuff::~m_stuff()\n");
     }
@@ -31,8 +26,7 @@ public:
 
 m_stuff stuff;
 
-static void printTargets(void)
-{
+static void printTargets(void) {
     uint8_t strBuf[512];
     strBuf[sizeof(strBuf) - 1] = 0;
     int32_t nTargets = bdmstuff::numTargets;
@@ -80,7 +74,7 @@ static void printTargets(void)
     }
 }
 
-static bool dumpFlashTarget( int32_t idx, const char *fName ) {
+static bool readFlash( int32_t idx, const char *fName ) {
     const target_t *info = bdmstuff::info( idx );
     for ( uint32_t idx = 0; idx < info->regions; idx++ ) {
         if ( info->region[ idx ].type == opFlash ||
@@ -92,7 +86,7 @@ static bool dumpFlashTarget( int32_t idx, const char *fName ) {
     return false;
 }
 
-static bool writeFlashTarget( int32_t idx, const char *fName ) {
+static bool writeFlash( int32_t idx, const char *fName ) {
     const target_t *info = bdmstuff::info( idx );
     for ( uint32_t idx = 0; idx < info->regions; idx++ ) {
         if ( info->region[ idx ].type == opFlash ||
@@ -104,7 +98,7 @@ static bool writeFlashTarget( int32_t idx, const char *fName ) {
     return false;
 }
 
-static bool dumpSramTarget( int32_t idx, const char *fName ) {
+static bool readSRAM( int32_t idx, const char *fName ) {
     const target_t *info = bdmstuff::info( idx );
     for ( uint32_t idx = 0; idx < info->regions; idx++ ) {
         if ( info->region[ idx ].type == opSRAM ) {
@@ -115,18 +109,19 @@ static bool dumpSramTarget( int32_t idx, const char *fName ) {
     return false;
 }
 
+static bool runSRAM( int32_t, const char *, const char* ) {
+    printf("Implement me\n");
+    return false;
+}
 
-static bool nukeTarget( int ) {
+
+
+static bool nukeTarget( int32_t ) {
     printf("Implement me\n");
     return false;
 }
 
 static bool runWaitTarget( int32_t, const char *, const char* ) {
-    printf("Implement me\n");
-    return false;
-}
-
-static bool runSramTarget( int32_t, const char *, const char* ) {
     printf("Implement me\n");
     return false;
 }
@@ -138,8 +133,7 @@ int main(int argc, char *argv[]) {
 
     printf("Version: %s\n", bdmstuff::version);
 
-    if (argc < 2)
-    {
+    if ( argc < 2 ) {
         printf("\nCommands:\n"
                "    --targets                     - Dump list of targets\n"
                "    --target <num>                - Select target\n"
@@ -152,8 +146,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Print targets
-    for (int i = 1; i < argc; i++) {
-        if (strstr(argv[i], "--targets")) {
+    for ( int i = 1; i < argc; i++ ) {
+        if ( strstr(argv[i], "--targets") ) {
             printTargets();
             return 0;
         }
@@ -169,29 +163,27 @@ int main(int argc, char *argv[]) {
 
     // Find target in arg list
     // (Nothing can be done without knowing which target to talk to)
-    for (int i = 1; i < argc; i++) {
+    for ( int i = 1; i < argc; i++ ) {
         const char *ptr = strstr(argv[i], "--target");
         int remainargs = (argc - 1) - i;
-        if (ptr && !remainargs) {
+        if ( ptr && !remainargs ) {
             printf("You must also specify target number\n");
             return 1;
-        }
-        else if (ptr && remainargs) {
+        } else if ( ptr && remainargs ) {
             sc = argv[i + 1];
-            if (!sc.isDec<int32_t>()) {
+            if ( !sc.isDec<int32_t>() ) {
                 printf("Specified target number is malformed\n");
                 return 1;
             }
             target = sc.asDec<int32_t>();
             break;
-        }
-        else if (!ptr && !remainargs) {
+        } else if ( !ptr && !remainargs ) {
             printf("Please pass --target and decimal number\n");
             return 1;
         }
     }
 
-    if (target < 0 || target >= bdmstuff::numTargets) {
+    if ( target < 0 || target >= bdmstuff::numTargets ) {
         printf("Target number out of bounds!\n");
         return 1;
     }
@@ -203,49 +195,42 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    for (int32_t i = 1; i < argc; i++)
-    {
+    for (int32_t i = 1; i < argc; i++) {
         int32_t remainargs = (argc - 1) - i;
         bool status = true;
-
-        if (strstr(argv[i], "--nuke") && target == 7) {
-            status = nukeTarget( i );
-        }
-        else if (strstr(argv[i], "--runwait")) {
+        if ( strstr(argv[i], "--nuke") ) {
+            status = nukeTarget( target );
+        } else if ( strstr(argv[i], "--runwait") ) {
             // Reset target and run it, wait for it to enter bdm/debug etc, upload code to specified address and return operation from last pc
             if ( remainargs < 2 ) {
                 printf("You must specify filename and destination\n");
                 return false;
             }
             status = runWaitTarget( target, argv[i + 1], argv[i + 2] );
-        }
-        else if (strstr(argv[i], "--runsram")) {
+        } else if ( strstr(argv[i], "--runsram") ) {
             if ( remainargs < 2 ) {
                 printf("You must specify filename and destination\n");
                 return false;
             }
-            status = runSramTarget( target, argv[i + 1], argv[i + 2] );
-        }
-        else if (strstr(argv[i], "--dumpsram")) {
+            status = runSRAM( target, argv[i + 1], argv[i + 2] );
+        } else if ( strstr(argv[i], "--dumpsram") ) {
             if ( remainargs == 0 ) {
                 printf("You must supply a filename\n");
                 return 1;
             }
-            status = dumpSramTarget( target, argv[i + 1] );
-        }
-        else if (strstr(argv[i], "--dump")) {
+            status = readSRAM( target, argv[i + 1] );
+        } else if ( strstr(argv[i], "--dump") ) {
             if ( remainargs == 0 ) {
                 printf("You must supply a filename\n");
                 return 1;
             }
-            status = dumpFlashTarget( target, argv[i + 1] );
-        }
-        else if (strstr(argv[i], "--flash")) {
+            status = readFlash( target, argv[i + 1] );
+        } else if ( strstr(argv[i], "--flash") ) {
             if ( remainargs == 0 ) {
                 printf("You must supply a filename\n");
                 return 1;
             }
-            status = writeFlashTarget( target, argv[i + 1] );
+            status = writeFlash( target, argv[i + 1] );
         }
 
         if ( status == false ) {
