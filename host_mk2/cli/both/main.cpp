@@ -80,17 +80,14 @@ int main(int argc, char *argv[]) {
 
     stuff.load( 3 );
 
+    if ( stuff.readFile("flash.bin") ) {
+        stuff.write( 0 );
+    }
+
     // Read 
     if ( stuff.read( 0 ) ) {
         stuff.saveFile("dump.bin");
     }
 
-
-    if ( stuff.readFile("flash.bin") ) {
-        stuff.write( 0 );
-    }
-
-    sleep( 1 );
-
-    printf("Anyone there?\n");
+    return 1;
 }

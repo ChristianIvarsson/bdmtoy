@@ -104,7 +104,9 @@ void bdmworker::sndData( const uint16_t *rx )
 {
     uint32_t  bufAddr  = *(uint32_t *) &rx[3];
     uint32_t  Len      = *(uint32_t *) &rx[5];
-    uint16_t *flashPtr =  (uint16_t *) &file.buffer[ bufAddr ];
+
+    // Round up to nearest word
+    Len = (Len + 1) & ~1;
 
     if ( rx[2] != RET_OK ) {
         core.castMessage("Error: sendFlashData() rx[2] != RET_OK");
@@ -136,6 +138,7 @@ void bdmworker::sndData( const uint16_t *rx )
         return;
     }
 
+    // updateProgress() needs this
     memory.expectAt = bufAddr + Len;
 
     updateProgress();
@@ -149,8 +152,7 @@ void bdmworker::sndData( const uint16_t *rx )
     queue.txBuffer[1] = 1;
     queue.txBuffer[2] = TAP_DO_ASSISTFLASH_IN;
 
-    for (uint32_t i = 0; i < (Len/2); i++ )
-        queue.txBuffer[3 + i] = *flashPtr++;
+    memcpy( &queue.txBuffer[ 3 ], &file.buffer[ bufAddr ], Len );
 
     queue.oneShot();
 }
@@ -374,11 +376,11 @@ void bdmworker::receive( const void *buf, uint32_t len ) {
             // Master commands
             case TAP_DO_DUMPMEM:
                 recData( temp );
-                return;
+                break;
 
             case TAP_DO_ASSISTFLASH_IN:
                 sndData( temp );
-                return;
+                break;
 
             case TAP_DO_UPDATESTATUS:
                 setFlags( temp );
@@ -479,6 +481,7 @@ bool bdmworker::queue::send() {
     }
 
     while ( inFlight && worker.timer.outatime() == false ) { }
+
     if ( inFlight && worker.timer.outatime() ) {
         // Prevent other end from entering
         // - The other end could've entered just before this flag is cleared so you have to wait long enough to be sure

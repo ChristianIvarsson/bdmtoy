@@ -285,11 +285,10 @@ public:
         buf[0] = TAP_DO_ASSISTFLASH;
         buf[1] = TAP_AssistCMD_sz;
 
-        *(uint32_t *)&buf[2] = Addr;
-        *(uint32_t *)&buf[4] = Len;
-
-        *(uint32_t *)&buf[6] = DriverStart;
-        *(uint32_t *)&buf[8] = BufferStart;
+        *(uint32_t *)&buf[2]  = Addr;
+        *(uint32_t *)&buf[4]  = Len;
+        *(uint32_t *)&buf[6]  = DriverStart;
+        *(uint32_t *)&buf[8]  = BufferStart;
         *(uint32_t *)&buf[10] = BufferLen;
 
         // wrk_ResetflashDone();

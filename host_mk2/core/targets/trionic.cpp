@@ -37,7 +37,10 @@ class iTrionic
         }
 
         // Wait for target stop
-        do { retval = core.getStatus( &status );
+        do {
+            retval = core.getStatus( &status );
+            // Let's be nice. No need to absolutely hammer the status request
+            sleep_ms( 50 );
         } while ( retval && status == RET_TARGETRUNNING );
 
         if ( status != RET_TARGETSTOPPED ) {
@@ -148,7 +151,7 @@ protected:
             return false;
         }
 
-
+        core.castMessage("Info: Writing flash");
         if ( !core.queue.send(assistFlash(
                                 memSpec.address, memSpec.size,
                                 0x100400, 0x100000, 0x400)) ) {
