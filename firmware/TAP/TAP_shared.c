@@ -557,7 +557,7 @@ inline static void TAP_SetAllNotsupported() {
 // TAP; Queue worker
 void TAP_Commands(const void *bufin)
 {
-    uint16_t *sendbfr  = (uint16_t *) &sendBuffer;
+    uint16_t *sendbfr  = (uint16_t *)  sendBuffer;
     uint16_t *in_pntr  = (uint16_t *)  bufin;      // Incoming buffer
     uint16_t *out_pntr = (uint16_t *) &sendbfr[1]; // ..
 
