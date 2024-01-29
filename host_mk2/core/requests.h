@@ -157,123 +157,48 @@ public:
     ////////////////////////////////////////////////////////////
     // Memory; Write requests
 
-/*
-    // [no. cmd][tot len]
-    // [[cmd], [cmd + data len, words]], [addr][addr],[len][len], [data]++
-    uint32_t TAP_FillDataBE2(uint32_t Addr, uint32_t Len, const uint16_t *dataptr)
+    bool fillDataBE4( uint32_t Addr, const uint8_t *dataPtr, size_t toSend )
     {
-        uint32_t lenPad = (Len & 1);
-        uint8_t *dataIn = (uint8_t *)dataptr;
-        uint8_t *dataOut = malloc(ADAPTER_BUFzIN);
-        uint32_t retval = RET_OK;
-        uint32_t i, actToSend;
-        uint8_t *cpPtr;
-
-        if (!dataOut)
-            return wrk_faultShortcut(RET_MALLOC);
-
-        *(uint16_t *)&dataOut[0] = TAP_DO_FILLMEM;
-
-        while (Len && retval == RET_OK)
-        {
-            cpPtr = (uint8_t *)&dataOut[12];
-            actToSend = Len + lenPad;
-
-            // Sorry about this voodoo.. We have to take two headers into account
-            if (actToSend > (ADAPTER_BUFzIN - 16))
-                actToSend = (ADAPTER_BUFzIN - 16) - ((ADAPTER_BUFzIN - 16) % 2);
-
-            if (actToSend <= Len)
-            {
-                for (i = 0; i < actToSend; i++)
-                    cpPtr[(1 - (i & 1)) + (i & 0xfffffffe)] = *dataIn++;
-
-                cpPtr += Len;
-                Len -= actToSend;
-            }
-            else
-            {
-                for (i = 0; i < Len; i++)
-                {
-                    if (i < Len)
-                        cpPtr[(1 - (i & 1)) + (i & 0xfffffffe)] = *dataIn++;
-                    else
-                        cpPtr[(1 - (i & 1)) + (i & 0xfffffffe)] = 0;
-                }
-                Len = 0;
-            }
-
-            // Send package..
-            *(uint16_t *)&dataOut[2] = TAP_ReadCMD_sz + (actToSend / 2);
-            *(uint32_t *)&dataOut[4] = Addr;
-            *(uint32_t *)&dataOut[8] = actToSend;
-            Addr += actToSend;
-
-            retval = wrk_sendOneshot(dataOut);
-        }
-
-        free(dataOut);
-
-        return retval;
-    }
-*/
-
-    // This mess needs a clean!
-    bool fillDataBE4( uint32_t Addr, const uint8_t *dataptr, size_t Len )
-    {
-        uint32_t lenPad = (Len & 3) ? (4 - (Len % 4)) : 0;
-        uint8_t *dataIn = (uint8_t *)dataptr;
-        uint8_t *dataOut = (uint8_t*)malloc( ADAPTER_BUFzIN );
+        uint8_t *tmp = (uint8_t*)malloc( ADAPTER_BUFzIN );
         bool retval = true;
-        uint32_t i, actToSend;
-        uint8_t *cpPtr;
 
-        if ( dataOut == nullptr ) {
+        if ( tmp == nullptr ) {
             core.castMessage("Error: fillDataBE4 - Could not malloc buffer");
             return core.flagStatus(RET_MALLOC);
         }
 
-        *(uint16_t *)&dataOut[0] = TAP_DO_FILLMEM;
+        *(uint16_t *)tmp = TAP_DO_FILLMEM;
 
-        while ( Len > 0 && retval == true )
+        while ( toSend > 0 && retval == true )
         {
-            cpPtr = (uint8_t *)&dataOut[12];
-            actToSend = Len + lenPad;
+            uint8_t *cpPtr = &tmp[12];
+            size_t   actToSend = (toSend + 3) & ~3;
 
-            // Sorry about this voodoo.. We have to take two headers into account
             if (actToSend > (ADAPTER_BUFzIN - 16))
-                actToSend = (ADAPTER_BUFzIN - 16) - ((ADAPTER_BUFzIN - 16) % 4);
+                actToSend = (ADAPTER_BUFzIN - 16) & ~3;
 
-            if (actToSend <= Len)
-            {
-                for (i = 0; i < actToSend; i++)
-                    cpPtr[(3 - (i & 3)) + (i & 0xfffffffc)] = *dataIn++;
-
-                cpPtr += Len;
-                Len -= actToSend;
-            }
-            else
-            {
-                for (i = 0; i < Len; i++)
-                {
-                    if (i < Len)
-                        cpPtr[(3 - (i & 3)) + (i & 0xfffffffc)] = *dataIn++;
-                    else
-                        cpPtr[(3 - (i & 3)) + (i & 0xfffffffc)] = 0;
-                }
-                Len = 0;
+            if ( toSend >= actToSend ) {
+                for ( size_t i = 0; i < actToSend; i++ )
+                    cpPtr[ i ^ 3 ] = *dataPtr++;
+                toSend -= actToSend;
+            } else {
+                for ( size_t i = 0; i < toSend; i++ )
+                    cpPtr[ i ^ 3 ] = *dataPtr++;
+                for ( size_t i = toSend; i < actToSend; i++ )
+                    cpPtr[ i ^ 3 ] = 0;
+                toSend = 0;
             }
 
             // Send package..
-            *(uint16_t *)&dataOut[2] = TAP_ReadCMD_sz + (actToSend / 2);
-            *(uint32_t *)&dataOut[4] = Addr;
-            *(uint32_t *)&dataOut[8] = actToSend;
+            *(uint16_t *)&tmp[2] = TAP_ReadCMD_sz + (actToSend / 2);
+            *(uint32_t *)&tmp[4] = Addr;
+            *(uint32_t *)&tmp[8] = actToSend;
             Addr += actToSend;
 
-            retval = core.queue.send( (uint16_t*)dataOut );
+            retval = core.queue.send( (uint16_t*)tmp );
         }
 
-        free( dataOut );
+        free( tmp );
 
         return retval;
     }
