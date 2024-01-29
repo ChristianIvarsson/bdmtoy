@@ -157,6 +157,52 @@ public:
     ////////////////////////////////////////////////////////////
     // Memory; Write requests
 
+    bool fillDataBE2( uint32_t Addr, const uint8_t *dataPtr, size_t toSend )
+    {
+        uint8_t *tmp = (uint8_t*)malloc( ADAPTER_BUFzIN );
+        bool retval = true;
+
+        if ( tmp == nullptr ) {
+            core.castMessage("Error: fillDataBE2 - Could not malloc buffer");
+            return core.flagStatus(RET_MALLOC);
+        }
+
+        *(uint16_t *)tmp = TAP_DO_FILLMEM;
+
+        while ( toSend > 0 && retval == true )
+        {
+            uint8_t *cpPtr = &tmp[12];
+            size_t   actToSend = (toSend + 1) & ~1;
+
+            if (actToSend > (ADAPTER_BUFzIN - 16))
+                actToSend = (ADAPTER_BUFzIN - 16) & ~1;
+
+            if ( toSend >= actToSend ) {
+                for ( size_t i = 0; i < actToSend; i++ )
+                    cpPtr[ i ^ 1 ] = *dataPtr++;
+                toSend -= actToSend;
+            } else {
+                for ( size_t i = 0; i < toSend; i++ )
+                    cpPtr[ i ^ 1 ] = *dataPtr++;
+                for ( size_t i = toSend; i < actToSend; i++ )
+                    cpPtr[ i ^ 1 ] = 0;
+                toSend = 0;
+            }
+
+            // Send package..
+            *(uint16_t *)&tmp[2] = TAP_ReadCMD_sz + (actToSend / 2);
+            *(uint32_t *)&tmp[4] = Addr;
+            *(uint32_t *)&tmp[8] = actToSend;
+            Addr += actToSend;
+
+            retval = core.queue.send( (uint16_t*)tmp );
+        }
+
+        free( tmp );
+
+        return retval;
+    }
+
     bool fillDataBE4( uint32_t Addr, const uint8_t *dataPtr, size_t toSend )
     {
         uint8_t *tmp = (uint8_t*)malloc( ADAPTER_BUFzIN );
