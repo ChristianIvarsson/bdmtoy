@@ -82,11 +82,13 @@ int main(int argc, char *argv[]) {
 
     // Read 
     if ( stuff.read( 0 ) ) {
-        stuff.saveFile("test_0.bin");
+        stuff.saveFile("dump.bin");
     }
 
 
-
+    if ( stuff.readFile("flash.bin") ) {
+        stuff.write( 0 );
+    }
 
     sleep( 1 );
 

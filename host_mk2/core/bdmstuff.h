@@ -45,11 +45,16 @@ class bdmworker
     class queue {
         bdmworker &worker;
 
+    friend bdmworker;
+
         volatile bool &inFlight; // Something has been sent and a response is to be expected
         uint16_t &txSize;        // Total size of tx request (in words)
         uint16_t &txCommands;    // Number of currently stored commands in the queue
         uint32_t  txIndex;       // Where from to start storing commands
         uint16_t  txBuffer [ ADAPTER_BUFzIN/2 ];
+
+        // Special command for assisted flash
+        bool oneShot();
 
     public:
         explicit queue( bdmworker & wrk )
@@ -73,11 +78,6 @@ class bdmworker
         // Add to queue
         void add( const uint16_t * );
 
-        // Send the whole queue, don't wait for answer
-        bool oneShot();
-        // Send a single command, don't wait for answer. (will reset any queued commands!)
-        bool oneShot( const uint16_t * );
-
         // Send queue, wait for answer
         bool send();
         // Send a single command, wait for answer. (will reset any queued commands!)
@@ -92,10 +92,6 @@ class bdmworker
     };
 
     void updateProgress();
-
-    // Update status and return true if status == RET_OK
-    // - sets "queue.inFlight = false", no further comms will happen after
-    bool flagStatus   ( uint16_t );
 
     // Communication
     void setFlags     ( const uint16_t * );  // Adapter --> host      - Set flags
@@ -114,9 +110,10 @@ class bdmworker
     } memory;
 
     struct {
-        uint8_t *buffer   = nullptr;
-        size_t   length   = 0;
-        size_t   location = 0;
+        uint8_t *buffer    = nullptr;
+        size_t   allocated = 0;
+        size_t   location  = 0;
+        size_t   readSize  = 0;
     } file;
 
     struct {
@@ -154,6 +151,10 @@ public:
 
     // libUSB needs a couple of static callbacks so this can't be protected or private...
     void receive( const void *, uint32_t );
+
+    // Update status and return true if status == RET_OK
+    // - sets "queue.inFlight = false", no further comms will happen after
+    bool flagStatus( uint16_t );
 
     // void begin     ( * Request );  ( Also usable as operator '='  )
     // void add       ( * Request );  ( Also usable as operator '+=' )
@@ -199,10 +200,20 @@ public:
                   uint32_t        size,        // How many BYTES to expect in that request
                   uint32_t        index = 0 ); // If not the first matching command, which index?
 
+    // Retrieve target status
+    bool getStatus(uint16_t *sts = nullptr);
+
     // Byteswap filebuffer where blockSize can be 1 - 16
-    bool swapBuffer( uint32_t blockSize );
+    bool swapDump  ( uint32_t blockSize );
+    bool swapBuffer( uint32_t blockSize, size_t nBytes );
+
+    // Mirror file buffer - Only use this after reading a file
+    bool mirrorReadFile( size_t toSize );
 
     bool saveFile(const char*);
+    bool readFile(const char*);
+
+    const size_t & fileSize;
 };
 
 
@@ -248,6 +259,9 @@ public:
 
     bool read();
     bool read( uint32_t );
+
+    bool write();
+    bool write( uint32_t );
 };
 
 class stopwatch {

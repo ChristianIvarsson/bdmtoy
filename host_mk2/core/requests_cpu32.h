@@ -30,7 +30,11 @@
 class requests_cpu32
     : public requests
 {
+
 public:
+    explicit requests_cpu32( bdmstuff & m )
+        : requests( m ) {}
+
     uint16_t *readSystemRegister(uint16_t Reg) {
         return readRegister(0x2580 + (Reg & 0xF), sizeDword);
     }

@@ -12,14 +12,15 @@
 bdmworker::bdmworker( bdmstuff & par )
     : usb( par, *this ),
       core( par ),
-      queue( *this )
+      queue( *this ),
+      fileSize( file.readSize )
 {
     if ( (file.buffer = (uint8_t*)malloc( 8 * 1024 * 1024 )) == nullptr ) {
         printf("Catastrophic error - Could not allocate file buffer\n");
         exit( EXIT_FAILURE );
     }
 
-    file.length = 8 * 1024 * 1024;
+    file.allocated = 8 * 1024 * 1024;
 
     this->reset();
 }
@@ -54,6 +55,7 @@ void bdmworker::setFlags( const uint16_t *rx ) {
 
     core.castMessage((rx[2] == RET_OK) ? "Info: Driver done" : "Error: Adapter flagged a fault");
     core.castMessage("Flag: %04X", rx[3]);
+    flagStatus( rx[2] );
 }
 
 void bdmworker::resetRxCount() {
@@ -100,17 +102,15 @@ void bdmworker::updateProgress() {
 // Adapter wants data from the host
 void bdmworker::sndData( const uint16_t *rx )
 {
-
-/*
-        if ( temp[2] != RET_OK ) {
-            flagStatus( temp[2] );
-            return;
-        }
-        */
-/*
     uint32_t  bufAddr  = *(uint32_t *) &rx[3];
     uint32_t  Len      = *(uint32_t *) &rx[5];
-    uint16_t *flashPtr =  (uint16_t *) &file.buffer[ bufAddr / 2 ];
+    uint16_t *flashPtr =  (uint16_t *) &file.buffer[ bufAddr ];
+
+    if ( rx[2] != RET_OK ) {
+        core.castMessage("Error: sendFlashData() rx[2] != RET_OK");
+        flagStatus( rx[2] );
+        return;
+    }
 
     // core.castMessage("Info: Adapter req'd data: %x, Len %u", bufAddr, Len);
 
@@ -122,7 +122,8 @@ void bdmworker::sndData( const uint16_t *rx )
     }
 
     // Adapter tried to fetch more data than we have buffer!
-    else if ( (bufAddr + Len) > file.length ) {
+    // Ought to check read size but there could be cases where you have to patch the buffer outside of read size as long as it's inside the allocated space?
+    else if ( (bufAddr + Len) > file.allocated ) {
         core.castMessage("Error: sendFlashData() Bounds");
         flagStatus( RET_BOUNDS );
         return;
@@ -142,20 +143,16 @@ void bdmworker::sndData( const uint16_t *rx )
     // Update time since last. This'll make other functions wait indefinitely while flashing
     timer.reset();
 
-    cmdQueue.txBuffer[0] = (uint16_t)((Len/2) + 3);
-    cmdQueue.txBuffer[1] = 1;
-    cmdQueue.txBuffer[2] = TAP_DO_ASSISTFLASH_IN;
+    resetRxCount();
+
+    queue.txBuffer[0] = (uint16_t)((Len/2) + 3);
+    queue.txBuffer[1] = 1;
+    queue.txBuffer[2] = TAP_DO_ASSISTFLASH_IN;
 
     for (uint32_t i = 0; i < (Len/2); i++ )
-        cmdQueue.txBuffer[3 + i] = *flashPtr++;
+        queue.txBuffer[3 + i] = *flashPtr++;
 
-    resetRxReq();
-    // resetTxReq();
-
-    cmdQueue.queueMaster = TAP_DO_ASSISTFLASH_IN;
-
-    sendRequest(cmdQueue.txBuffer);
-*/
+    queue.oneShot();
 }
 
 // <Mend me>
@@ -186,7 +183,7 @@ void bdmworker::recData( const uint16_t *rx )
     }
 
     // Check if there's enough room
-    if ( (file.location + nBytes) > file.length ) {
+    if ( (file.location + nBytes) > file.allocated ) {
         core.castMessage("Error: Adapter tried to send more data than the file buffer can hold");
         flagStatus( RET_BOUNDS );
         return;
@@ -243,7 +240,7 @@ void bdmworker::scanRxQueue(const uint16_t *rx)
 
         // Check if response is too small
         if ( reqLen < 3 ) {
-            core.castMessage("Error: scanRxQueue() reqLen < 3");
+            core.castMessage("Error: scanRxQueue() reqLen < 3 (%u)", reqLen);
             flagStatus( RET_MALFORMED );
             return;            
         }
@@ -256,16 +253,8 @@ void bdmworker::scanRxQueue(const uint16_t *rx)
         }
 
         if ( status != RET_OK ) {
-            if ( req == TAP_DO_UPDATESTATUS ) {
-                // Has its own message
-                setFlags( rx );
-                // Small caveat here. setFlags performs a flagStatus( RET_MALFORMED ) if length is not 4.
-                if ( reqLen == 4 )
-                    flagStatus( status );
-            } else {
-                core.castMessage("Error: Command %04X, failed with: %04X", req, status);
-                flagStatus( status );
-            }
+            core.castMessage("Error: Command %04X, failed with: %04X", req, status);
+            flagStatus( status );
             return;                
         }
 
@@ -305,10 +294,6 @@ void bdmworker::scanRxQueue(const uint16_t *rx)
 
                 // Increment number of stored commands
                 noData++;
-                break;
-
-            case TAP_DO_UPDATESTATUS:
-                setFlags( rx );
                 break;
 
             default:
@@ -386,17 +371,20 @@ void bdmworker::receive( const void *buf, uint32_t len ) {
         rxTemp.multiFrame = false;
 
         switch ( temp[1] ) {
-            // These two have a special format to maximize buffer usage
+            // Master commands
             case TAP_DO_DUMPMEM:
                 recData( temp );
                 return;
 
             case TAP_DO_ASSISTFLASH_IN:
-                core.castMessage("Error: receive() TAP_DO_ASSISTFLASH_IN");
-                flagStatus( RET_MALFORMED );
-                // sndData( temp );
+                sndData( temp );
                 return;
 
+            case TAP_DO_UPDATESTATUS:
+                setFlags( temp );
+                break;
+
+            // Queued commands
             default:
                 scanRxQueue( temp );
                 break;
@@ -441,10 +429,15 @@ bool bdmworker::queue::getResult() {
     while ( inFlight && worker.timer.outatime() == false ) { }
 
     if ( inFlight && worker.timer.outatime() ) {
+        // Prevent other end from entering
+        // - The other end could've entered just before this flag is cleared so you have to wait long enough to be sure
         inFlight = false;
-        worker.core.castMessage("Error: queue::send() - Timeout!");
-        sleep_ms( 500 ); // Wait 500 ms in an attempt to prevent a race condition
+        worker.core.castMessage("Error: queue::getResult() - Timeout!");
+        sleep_ms( 500 ); // Nothing on the other end would take more than a few ms tops, even on old junk, so this delay is more than enough
+
+        // Return Rx worker state to something that is known
         worker.resetRxTmp();
+
         // worker.core.castMessage("Info: queue::getResult() spent %d ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - tick).count());
         return worker.flagStatus( RET_TIMEOUT );
     }
@@ -477,18 +470,26 @@ bool bdmworker::queue::send(const uint16_t *cmd) {
     return queue::send();
 }
 
-// Send a single command, do NOT wait for response
-bool bdmworker::queue::oneShot(const uint16_t *cmd) {
-    queue::begin( cmd );
-    return queue::oneShot();
-}
-
 // Send queue, wait for response
 bool bdmworker::queue::send() {
 
     if ( txCommands == 0 ) {
         worker.core.castMessage("Error: queue::send() - No commands in queue");
         return worker.flagStatus( RET_MALFORMED );
+    }
+
+    while ( inFlight && worker.timer.outatime() == false ) { }
+    if ( inFlight && worker.timer.outatime() ) {
+        // Prevent other end from entering
+        // - The other end could've entered just before this flag is cleared so you have to wait long enough to be sure
+        inFlight = false;
+        worker.core.castMessage("Error: queue::send() - Timeout!");
+        sleep_ms( 500 ); // Nothing on the other end would take more than a few ms tops, even on old junk, so this delay is more than enough
+
+        // Return Rx worker state to something that is known
+        worker.resetRxTmp();
+
+        return worker.flagStatus( RET_TIMEOUT );
     }
 
     inFlight = true;
@@ -513,16 +514,12 @@ bool bdmworker::queue::oneShot() {
         return worker.flagStatus( RET_MALFORMED );
     }
 
-    inFlight = true;
-
     if ( worker.usb::send( (void*)txBuffer, txBuffer[ 0 ] * 2 ) == false ) {
         inFlight = false;
         sleep_ms( 500 );
         worker.resetRxTmp();
         return worker.flagStatus( RET_USBERR );
     }
-
-    worker.timer.reset();
 
     return true;
 }
@@ -534,7 +531,7 @@ bool bdmworker::queue::oneShot() {
 void bdmworker::setSize(size_t newSize) {
     uint8_t *tmp;
 
-    if ( newSize <= file.length )
+    if ( newSize <= file.allocated )
         return;
 
     if ( (tmp = (uint8_t*)realloc( file.buffer, newSize )) == nullptr ) {
@@ -544,14 +541,15 @@ void bdmworker::setSize(size_t newSize) {
         exit( EXIT_FAILURE );
     }
 
-    file.buffer = tmp;
-    file.length = newSize;
+    file.buffer    = tmp;
+    file.allocated = newSize;
 }
 
 void bdmworker::setRange(const memory_t *mem) {
     memory.startAt  = mem->address;
     memory.expectAt = mem->address;
     memory.stopAt   = mem->address + mem->size;
+    setSize( mem->size );
 }
 
 void bdmworker::reset() {
@@ -593,7 +591,7 @@ bool bdmworker::getData( uint16_t *buf, Master_Commands toCmd, uint32_t size, ui
         if ( cmd == toCmd ) {
             if ( seenCmd == index ) {
                 if ( size == ((len - 2)*2) ) {
-                    if ( size > 0 )
+                    if ( size > 0 && buf != nullptr )
                         memcpy((void*)buf, (void*)&ptr[2], (size_t)size);
                     return true;
                 } else {
@@ -624,9 +622,28 @@ uint16_t bdmworker::lastFault() {
     return flags.lastFault;
 }
 
-bool bdmworker::swapBuffer(uint32_t blockSize) {
+bool bdmworker::getStatus(uint16_t *status) {
+    uint16_t tmp[ 2 ];
+    tmp[0] = TAP_DO_TARGETSTATUS;
+    tmp[1] = 2;
+
+    if ( queue.send( tmp ) == false ) {
+        core.castMessage("Error: bdmworker::getStatus - Could not retrieve target status");
+        if ( status != nullptr ) *status = flags.lastFault;
+        return false;
+    }
+
+    if ( getData( status, TAP_DO_TARGETSTATUS, 2, 0 ) == false ) {
+        core.castMessage("Error: bdmworker::getStatus - Could not retrieve data from target status");
+        if ( status != nullptr ) *status = RET_UNKERROR;
+        return false;
+    }
+
+    return true;
+}
+
+bool bdmworker::swapBuffer(uint32_t blockSize, size_t nBytes) {
     uint8_t *fBuf = (uint8_t *)file.buffer;
-    size_t   nBytes = file.location;
     uint8_t  swapBuffer[ 16 ];
 
     if ( blockSize < 2 || blockSize > sizeof(swapBuffer) ) {
@@ -644,6 +661,11 @@ bool bdmworker::swapBuffer(uint32_t blockSize) {
         return false;
     }
 
+    if ( nBytes > file.allocated ) {
+        core.castMessage("Error: bdmworker::swapBuffer() - Can't swap outside allocated space");
+        return false;
+    }
+
     while ( nBytes > 0 ) {
         fBuf = &fBuf[ blockSize ];
         for (uint32_t i = 0; i < blockSize; i++)
@@ -656,7 +678,57 @@ bool bdmworker::swapBuffer(uint32_t blockSize) {
     return true;
 }
 
-// Compiler optimizations, ofstream and mingw == someone set off a nuke!
+bool bdmworker::swapDump(uint32_t blockSize) {
+    return swapBuffer( blockSize, file.location );
+}
+
+bool bdmworker::mirrorReadFile( size_t toSize ) {
+
+    size_t currSize = file.readSize;
+    size_t origSize = currSize;
+    size_t nCopies = 1;
+
+    // New size must be larger or equal to read size
+    if ( toSize < currSize ) {
+        core.castMessage("Error: bdmworker::mirrorReadFile() - New size is smaller than read size");
+        return false;
+    }
+
+    if ( currSize == 0 ) {
+        core.castMessage("Error: bdmworker::mirrorReadFile() - There's nothing to mirror");
+        return false;
+    }
+
+    if ( toSize == currSize ) {
+        core.castMessage("Info: There's no need to mirror this buffer");
+        return true;
+    }
+
+    if ( (toSize % currSize) != 0 ) {
+        core.castMessage("Error: bdmworker::mirrorReadFile() - This file does not mirror up to the requested size");
+        return false;
+    }
+
+    // Check for odd multiples? Something like 128k -> 384k is just absurd
+    // You only ever use this on targets with replaced flash...
+
+    // Check allocated buffer size and increase if necessary
+    setSize( toSize );
+
+    while ( currSize < toSize ) {
+        memcpy( &file.buffer[ currSize ], file.buffer, origSize );
+        currSize += origSize;
+        nCopies++;
+    }
+
+    file.readSize = currSize;
+
+    core.castMessage("Info: Multiplied %u times", nCopies);
+
+    return true;
+}
+
+// Compiler optimisations, ofstream and mingw == someone set off a nuke!
 /*
 bool bdmworker::saveFile(const char *fName) {
 
@@ -716,6 +788,52 @@ bool bdmworker::saveFile(const char *fName) {
     }
 
     fclose(fp);
+
+    core.castMessage("Info: Done");
+
+    return true;
+}
+
+bool bdmworker::readFile(const char *fName) {
+
+    FILE * fp;
+
+    core.castMessage("Info: Reading file..");
+
+    // Reset loaded size to 0
+    file.readSize = 0;
+
+    if ( (fp = fopen( fName, "rb" )) == nullptr ) {
+        core.castMessage("Error: bdmworker::readFile() - Could not get file handle");
+        return false;
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    long fileSize = ftell(fp);
+    rewind(fp);
+
+    if ( fileSize < 0 ) {
+        core.castMessage("Error: bdmworker::readFile() - Unable to determine file size");
+        fclose(fp);
+        return false;
+    }
+
+    if ( fileSize == 0 ) {
+        core.castMessage("Error: bdmworker::readFile() - There's no data to read");
+        fclose(fp);
+        return false;
+    }
+
+    size_t actRead = fread(file.buffer, 1, (size_t)fileSize, fp);
+
+    fclose(fp);
+
+    if ( actRead != (size_t)fileSize ) {
+        core.castMessage("Error: bdmworker::readFile() - Could not read the whole file");
+        return false;
+    }
+
+    file.readSize = actRead;
 
     core.castMessage("Info: Done");
 

@@ -73,6 +73,8 @@ bool bdmstuff::read( uint32_t region ) {
     stopwatch tim;
     bool status;
 
+    castMessage("Info: Reading..");
+
     bdmworker::reset();
 
     if ( target == nullptr ) {
@@ -84,6 +86,9 @@ bool bdmstuff::read( uint32_t region ) {
         castMessage("Error: read() - No such region");
         return false;
     }
+
+    // Set expected address range and increase size of dump buffer if need be
+    setRange( &desc->region[ region ] );
 
     if ( bdmworker::usb::connect() == false )
         return false;
@@ -100,4 +105,54 @@ bool bdmstuff::read( uint32_t region ) {
     castMessage("Info: spent %02d:%02d:%03d", tim.minutes, tim.seconds, tim.milliseconds);
 
     return status;
+}
+
+bool bdmstuff::read() {
+    return read( 0 );
+}
+
+bool bdmstuff::write( uint32_t region ) {
+
+    stopwatch tim;
+    bool status;
+
+    castMessage("Info: Writing..");
+
+    bdmworker::reset();
+
+    if ( target == nullptr ) {
+        castMessage("Error: write() - There is no target loaded");
+        return false;
+    }
+
+    if ( region >= desc->regions ) {
+        castMessage("Error: write() - No such region");
+        return false;
+    }
+
+    // Note: targets must determine if they're happy with the loaded file size
+    if ( fileSize == 0 ) {
+        castMessage("Error: write() - No file data loaded");
+        return false;
+    }
+
+    if ( bdmworker::usb::connect() == false )
+        return false;
+
+    tim.capture();
+
+    if ( (status = target->init( desc, &desc->region[ region ] )) == true )
+        status = target->write( desc, &desc->region[ region ] );
+
+    tim.capture();
+
+    bdmworker::usb::disconnect();
+
+    castMessage("Info: spent %02d:%02d:%03d", tim.minutes, tim.seconds, tim.milliseconds);
+
+    return status;
+}
+
+bool bdmstuff::write() {
+    return write( 0 );
 }

@@ -27,11 +27,15 @@ uint16_t *writeArrayMemory ( uint32_t Address ,  uint16_t *Data,  uint32_t Lengt
 */
 
 class requests
-{
+    : public iTarget {
+
     uint16_t buf[ 4096 ];
 
     // "payload"[[cmd], [cmd + data len, words], [data (if present)]]
 public:
+    explicit requests( bdmstuff & m )
+        : iTarget( m ) { }
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Setup and toys
@@ -87,24 +91,7 @@ public:
         return buf;
     }
 
-    /*
-        // [cmd][cmd + data len, words]
-        uint32_t TAP_TargetStatus() {
-            static uint16_t arr[2];
-            uint16_t *ptr;
-            arr[0] = TAP_DO_TARGETSTATUS;
-            arr[1] = 2;
 
-            ptr = wrk_requestData(arr);
-            // retval = wrk_sendOneshot( arr );
-            if (!ptr)
-            {
-                return RET_GENERICERR;
-            }
-
-            return ptr[2] & 0xFFFF;
-        }
-    */
     // uint32_t runDamnit() { return wrk_sendOneshot( TAP_TargetRelease() ); }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,22 +216,26 @@ public:
 
         return retval;
     }
+*/
 
-    uint32_t TAP_FillDataBE4(uint32_t Addr, uint32_t Len, const uint16_t *dataptr)
+    // This mess needs a clean!
+    bool fillDataBE4( uint32_t Addr, const uint8_t *dataptr, size_t Len )
     {
         uint32_t lenPad = (Len & 3) ? (4 - (Len % 4)) : 0;
         uint8_t *dataIn = (uint8_t *)dataptr;
-        uint8_t *dataOut = malloc(ADAPTER_BUFzIN);
-        uint32_t retval = RET_OK;
+        uint8_t *dataOut = (uint8_t*)malloc( ADAPTER_BUFzIN );
+        bool retval = true;
         uint32_t i, actToSend;
         uint8_t *cpPtr;
 
-        if (!dataOut)
-            return wrk_faultShortcut(RET_MALLOC);
+        if ( dataOut == nullptr ) {
+            core.castMessage("Error: fillDataBE4 - Could not malloc buffer");
+            return core.flagStatus(RET_MALLOC);
+        }
 
         *(uint16_t *)&dataOut[0] = TAP_DO_FILLMEM;
 
-        while (Len && retval == RET_OK)
+        while ( Len > 0 && retval == true )
         {
             cpPtr = (uint8_t *)&dataOut[12];
             actToSend = Len + lenPad;
@@ -279,36 +270,32 @@ public:
             *(uint32_t *)&dataOut[8] = actToSend;
             Addr += actToSend;
 
-            retval = wrk_sendOneshot(dataOut);
+            retval = core.queue.send( (uint16_t*)dataOut );
         }
 
-        free(dataOut);
+        free( dataOut );
 
         return retval;
     }
-*/
-/*
-    uint16_t *TAP_AssistFlash(uint32_t Addr, uint32_t Len,
+
+    uint16_t *assistFlash(uint32_t Addr, uint32_t Len,
                           uint32_t DriverStart,
                           uint32_t BufferStart, uint32_t BufferLen)
     {
-        static uint16_t arr[TAP_AssistCMD_sz];
+        buf[0] = TAP_DO_ASSISTFLASH;
+        buf[1] = TAP_AssistCMD_sz;
 
-        arr[0] = TAP_DO_ASSISTFLASH;
-        arr[1] = TAP_AssistCMD_sz;
+        *(uint32_t *)&buf[2] = Addr;
+        *(uint32_t *)&buf[4] = Len;
 
-        *(uint32_t *)&arr[2] = Addr;
-        *(uint32_t *)&arr[4] = Len;
+        *(uint32_t *)&buf[6] = DriverStart;
+        *(uint32_t *)&buf[8] = BufferStart;
+        *(uint32_t *)&buf[10] = BufferLen;
 
-        *(uint32_t *)&arr[6] = DriverStart;
-        *(uint32_t *)&arr[8] = BufferStart;
-        *(uint32_t *)&arr[10] = BufferLen;
+        // wrk_ResetflashDone();
 
-        wrk_ResetflashDone();
-
-        return &arr[0];
+        return buf;
     }
-*/
 
     /////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////

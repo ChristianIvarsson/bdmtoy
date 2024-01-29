@@ -5,58 +5,194 @@
 #include "../bdmstuff.h"
 
 #include "targets.h"
-#include "generic.h"
 
 #include "../requests_cpu32.h"
 
+#include "drivers/CPU32/trionic/txdriver.h"
+
 class iTrionic
-    : public iTarget,
-      public requests_cpu32
-{
-protected:
-    bool writeFlash()
-    {
+    : public requests_cpu32 {
+
+    bool driverDemand( uint32_t what ) {
+        bool retval;
+        uint16_t status;
+        uint32_t driverResponse;
+
+        // Store what to do
+        if ( !core.queue.send(writeDataRegister( 0, what )) ) {
+            core.castMessage("Error: driverDemand - Could not write d0");
+            return false;
+        }
+
+        // Set program counter to 10_0400
+        if ( !core.queue.send(writeSystemRegister( 0, 0x100400 )) ) {
+            core.castMessage("Error: driverDemand - Could not set program counter");
+            return false;
+        }
+
+        // Run target resident driver
+        if ( !core.queue.send(targetStart()) ) {
+            core.castMessage("Error: driverDemand - Could not start target");
+            return false;
+        }
+
+        // Wait for target stop
+        do { retval = core.getStatus( &status );
+        } while ( retval && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            core.castMessage("Error: driverDemand - Could not stop target");
+            return false;
+        }
+
+        if ( !core.queue.send(readDataRegister( 0 )) ||
+             !core.getData( (uint16_t*)&driverResponse, TAP_DO_READREGISTER, 4 ) ) {
+            core.castMessage("Error: driverDemand - Could not retrieve driver status");
+            return false;
+        }
+
+        if ( driverResponse != 1 ) {
+            core.castMessage("Error: driverDemand - Driver failed with %08x", driverResponse);
+            return false;
+        }
+
         return true;
     }
 
-public:
-    iTrionic(bdmstuff &core)
-        : iTarget(core)
-    {}
+protected:
+    bool writeFlash( const target_t *, const memory_t * ) {
 
-    bool read(const target_t *trg, const memory_t *mem) {
-        core.setRange( mem );
+        uint16_t idTemp[ 8 ];
+        uint32_t flashType, flashSize;
+        memory_t memSpec = { opFlash };
+
+        // Upload driver
+        core.castMessage("Info: Uploading driver..");
+
+        if ( fillDataBE4(0x100400, txDriver, sizeof(txDriver)) == false ) {
+            core.castMessage("Info: iTrionic::write - Unable upload driver");
+            return false;
+        }
+
+        core.setTimeout( 61 * 1000 );
+
+        if ( driverDemand( 3 ) == false )
+            return false;
+
+        core.castMessage("Info: Retrieving flash info..");
+
+        core.queue  = readDataRegister( 7 );    // MID / DID
+        core.queue += readDataRegister( 3 );    // EID
+        core.queue += readDataRegister( 6 );    // Type
+        core.queue += readAddressRegister( 1 ); // Size
+
+        if ( core.queue.send() == false ||
+             core.getData( &idTemp[0], TAP_DO_READREGISTER, 4, 0 ) == false ||
+             core.getData( &idTemp[2], TAP_DO_READREGISTER, 4, 1 ) == false ||
+             core.getData( &idTemp[4], TAP_DO_READREGISTER, 4, 2 ) == false ||
+             core.getData( &idTemp[6], TAP_DO_READREGISTER, 4, 3 ) == false ) {
+            core.castMessage("Error: trionic_7::write - Unable to retrieve flash information");
+            return false;
+        }
+
+        core.castMessage("Info: MID      %02X", (idTemp[0]>>8)&0xFF);
+        core.castMessage("Info: DID      %02X", (idTemp[0])   &0xFF);
+        core.castMessage("Info: EID    %04X"  ,  idTemp[2]);
+        // core.castMessage("Info: Type     %02X", *(uint32_t *) &idTemp[4]);
+        core.castMessage("Info: size %06X"    , *(uint32_t *) &idTemp[6]); 
+
+        flashType = *(uint32_t *) &idTemp[4];
+        flashSize = *(uint32_t *) &idTemp[6];
+
+        switch ( flashType ) {
+        case 1:  core.castMessage("Info: Old H/W flash"); break;
+        case 2:  core.castMessage("Info: Modern toggle flash"); break;
+        case 3:  core.castMessage("Info: Disgusting Atmel flash.."); break;
+        default: core.castMessage("Error: Driver does not understand this flash"); return false;
+        }
+
+        if ( core.fileSize != flashSize ) {
+            core.castMessage("Error: File size does not match expected size");
+            return false;
+        }
+
+        /*
+        if (core.fileSize > flashSize)
+        {
+            core.castMessage("It looks like your file is too big for the target. Aborting..");
+            return false;
+        }
+        // Only do this on T5 and T7, the ones where it's actually possible to add more flash. Implement checks before adding the other ones!
+        else if ( core.fileSize < flashSize ) {
+            core.castMessage("Info: File is too small. Checking if it can be mirrored..");
+            if ( core.mirrorReadFile( flashSize ) == false )
+                return false;
+            core.castMessage("Info: It could! Let's go");
+        }
+        */
+
+        // Notify worker about our intended address range
+        memSpec.size = flashSize;
+        core.setRange( &memSpec );
+
+        // Big endian target so buffer must be swapped
+        core.swapBuffer( 4, core.fileSize );
+
+        core.castMessage("Info: Erasing flash..");
+        if ( driverDemand( 2 ) == false )
+            return false;
+
+        // Set destination address for data
+        if ( !core.queue.send(writeAddressRegister( 0, memSpec.address )) ) {
+            core.castMessage("Error: Could not update destination pointer");
+            return false;
+        }
+
+
+        if ( !core.queue.send(assistFlash(
+                                memSpec.address, memSpec.size,
+                                0x100400, 0x100000, 0x400)) ) {
+            core.castMessage("Error: Flash failed");
+            return false;
+        }
+
+        return core.queue.send(targetReset());
+    }
+
+public:
+    iTrionic(bdmstuff & p)
+        : requests_cpu32(p) { }
+
+    virtual bool read(const target_t *, const memory_t *mem) {
         if ( core.queue.send( assistDump( mem->address, mem->size ) ) == false ) {
             core.castMessage("Info: iTrionic::read - Unable to start dump");
             return false;
         }
-        return core.swapBuffer( 4 );
+        return core.swapDump( 4 );
     }
 
-    ~iTrionic()
-    {
-        // printf("Info: ~iTrionic()\n");
+    virtual bool write( const target_t *target , const memory_t *region ) {
+        if ( region->type == opFlash )
+            return writeFlash( target, region );
+        return false;
     }
+
+    ~iTrionic() { }
 };
 
 class trionic_5
     : public iTrionic {
 public:
     trionic_5( bdmstuff & core )
-        : iTrionic( core ) {
-    }
-    ~trionic_5() {
-        printf("Info: ~trionic_5()\n");
-    }
+        : iTrionic( core ) { }
+    ~trionic_5() { }
 };
 
 class trionic_7
-    : public iTrionic
-{
+    : public iTrionic {
 public:
     trionic_7(bdmstuff &core)
-        : iTrionic(core)
-    { }
+        : iTrionic(core) { }
 
     bool init(const target_t *, const memory_t *)
     {
@@ -133,17 +269,13 @@ public:
         return core.queue.send( setInterface( config ) );
     }
 
-    ~trionic_7() {
-        // printf("Info: ~trionic_7()\n");
-    }
+    ~trionic_7() { }
 };
 
-iTarget *instTrionic5(bdmstuff &core)
-{
+iTarget *instTrionic5(bdmstuff &core) {
     return new trionic_5( core );
 }
 
-iTarget *instTrionic7(bdmstuff &core)
-{
+iTarget *instTrionic7(bdmstuff &core) {
     return new trionic_7(core);
 }

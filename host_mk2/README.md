@@ -12,3 +12,9 @@
 # 3. TAP_DO_UPDATESTATUS is only using the <STATUS> word on the host end. -> Fix up the damn adapter code to actually use the <FLAG> word properly!
 # - - < Should not affect old host code >
 #
+
+# - When implementing -
+#
+# - - Trionic needs more checks before attempting a mirror
+# - - - T5 can mirror 128K up to 256 or 512. 256K up to 512
+# - - - T7 can mirror 512K up to 1M

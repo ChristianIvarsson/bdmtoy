@@ -1,6 +1,11 @@
 #ifndef __TARGETS_H__
 #define __TARGETS_H__
 
+// Some small notes
+//
+// bdmstuff::read() / write() tries to use index 0 as its source range so try to stick the main storage at that location
+// For now, also try to stick main sram at index 1
+
 class bdmstuff;
 class iTarget;
 
@@ -10,7 +15,7 @@ enum enTargTyp {
     typeCPU32      = 1,   // CPU32 (68k architecture)
 };
 
-enum enOpTyp {
+enum enOpTyp : uint32_t {
     opFlash        = 0,
     opSRAM         = 1,
     opEEPROM       = 2,
