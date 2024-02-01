@@ -81,7 +81,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    movea.l #0x100800,%sp /* Reset stack pointer */
+    movea.l #0x1007FC, %sp /* Reset stack pointer */
     
     cmpi.b  #1, %d0
     beq.b   WriteBuffer    
