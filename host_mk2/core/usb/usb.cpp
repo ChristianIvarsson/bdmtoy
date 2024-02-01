@@ -41,6 +41,11 @@ static void usbSendCallback(struct libusb_transfer *transfer) {
 bool usb::send(void *ptr, uint32_t toSend) {
     int retStatus;
 
+    if ( !isConnected || !threadRunning ) {
+        core.castMessage("Error: usb::send() Not connected");
+        return false;
+    }
+
     while ( interface.sendBusy ){}
     interface.sendBusy = 1;
 
