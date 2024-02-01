@@ -107,8 +107,41 @@ bool bdmstuff::read( uint32_t region ) {
     return status;
 }
 
+bool bdmstuff::read( const memory_t *region ) {
+
+    stopwatch tim;
+    bool status;
+
+    castMessage("Info: Reading..");
+
+    bdmworker::reset();
+
+    if ( target == nullptr ) {
+        castMessage("Error: read() - There is no target loaded");
+        return false;
+    }
+
+    setRange( region );
+
+    if ( bdmworker::usb::connect() == false )
+        return false;
+
+    tim.capture();
+
+    if ( (status = target->init( desc, region )) == true )
+        status = target->read( desc, region );
+
+    tim.capture();
+
+    bdmworker::usb::disconnect();
+
+    castMessage("Info: spent %02d:%02d:%03d", tim.minutes, tim.seconds, tim.milliseconds);
+
+    return status;
+}
+
 bool bdmstuff::read() {
-    return read( 0 );
+    return read( (uint32_t)0 );
 }
 
 bool bdmstuff::write( uint32_t region ) {
@@ -136,6 +169,8 @@ bool bdmstuff::write( uint32_t region ) {
         return false;
     }
 
+    setRange( &desc->region[ region ] );
+
     if ( bdmworker::usb::connect() == false )
         return false;
 
@@ -153,6 +188,45 @@ bool bdmstuff::write( uint32_t region ) {
     return status;
 }
 
+bool bdmstuff::write( const memory_t *region ) {
+
+    stopwatch tim;
+    bool status;
+
+    castMessage("Info: Writing..");
+
+    bdmworker::reset();
+
+    if ( target == nullptr ) {
+        castMessage("Error: write() - There is no target loaded");
+        return false;
+    }
+
+    // Note: targets must determine if they're happy with the loaded file size
+    if ( fileSize == 0 ) {
+        castMessage("Error: write() - No file data loaded");
+        return false;
+    }
+
+    setRange( region );
+
+    if ( bdmworker::usb::connect() == false )
+        return false;
+
+    tim.capture();
+
+    if ( (status = target->init( desc, region )) == true )
+        status = target->write( desc, region );
+
+    tim.capture();
+
+    bdmworker::usb::disconnect();
+
+    castMessage("Info: spent %02d:%02d:%03d", tim.minutes, tim.seconds, tim.milliseconds);
+
+    return status;
+}
+
 bool bdmstuff::write() {
-    return write( 0 );
+    return write( (uint32_t)0 );
 }

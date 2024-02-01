@@ -27,6 +27,7 @@ BUILDMSG:
 
 TARGOBJS=\
 	build/trionic.o \
+	build/target_helper.o
 
 APPOBJS=\
 	build/main.o \
@@ -38,19 +39,26 @@ APPOBJS=\
 build/main.o:   main.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
+
+
 build/bdmstuff.o:   ../../core/bdmstuff.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
 build/bdmworker.o:   ../../core/bdmworker.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
+build/usb.o:   ../../core/usb/usb.cpp
+	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
+
+
 
 build/trionic.o:   ../../core/targets/trionic.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
-
-build/usb.o:   ../../core/usb/usb.cpp
+build/target_helper.o:   ../../core/targets/target_helper.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
+
+
 
 
 

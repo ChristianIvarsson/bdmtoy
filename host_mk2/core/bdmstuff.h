@@ -214,6 +214,7 @@ public:
     bool readFile(const char*);
 
     const size_t & fileSize;
+    const uint8_t * const & buffer;
 };
 
 
@@ -259,9 +260,11 @@ public:
 
     bool read();
     bool read( uint32_t );
+    bool read( const memory_t * );
 
     bool write();
     bool write( uint32_t );
+    bool write( const memory_t * );
 };
 
 class stopwatch {

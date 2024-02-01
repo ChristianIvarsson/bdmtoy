@@ -19,7 +19,7 @@ enum txFamily : uint32_t {
 };
 
 class iTrionic
-    : public requests_cpu32 {
+    : public requests_cpu32, public iTarget {
 
     bool driverDemand( uint32_t what ) {
         bool retval;
@@ -71,17 +71,22 @@ class iTrionic
     }
 
 protected:
-    bool writeFlash( txFamily gen, const target_t *, const memory_t * ) {
+    bool writeFlash( txFamily gen, const target_t *, const memory_t *region ) {
 
         uint16_t idTemp[ 8 ];
         uint32_t flashType, flashSize;
         memory_t memSpec = { opFlash };
 
+        if ( region != nullptr && region->type != opFlash ) {
+            core.castMessage("Error: This routine only knows how to deal with flash");
+            return false;
+        }
+
         // Upload driver
         core.castMessage("Info: Uploading driver..");
 
         if ( fillDataBE4(0x100400, txDriver, sizeof(txDriver)) == false ) {
-            core.castMessage("Info: iTrionic::write - Unable upload driver");
+            core.castMessage("Error: Unable to upload driver");
             return false;
         }
 
@@ -102,7 +107,7 @@ protected:
              core.getData( &idTemp[2], TAP_DO_READREGISTER, 4, 1 ) == false ||
              core.getData( &idTemp[4], TAP_DO_READREGISTER, 4, 2 ) == false ||
              core.getData( &idTemp[6], TAP_DO_READREGISTER, 4, 3 ) == false ) {
-            core.castMessage("Error: trionic_7::write - Unable to retrieve flash information");
+            core.castMessage("Error: Unable to retrieve flash information");
             return false;
         }
 
@@ -162,7 +167,7 @@ protected:
             return false;
         }
 
-        core.castMessage("Info: Writing flash");
+        core.castMessage("Info: Writing flash..");
         if ( !core.queue.send(assistFlash(
                                 memSpec.address, memSpec.size,
                                 0x100400, 0x100000, 0x400)) ) {
@@ -173,9 +178,33 @@ protected:
         return core.queue.send(targetReset());
     }
 
+    bool writeSRAM( txFamily gen, const target_t *, const memory_t *region ) {
+        memory_t memSpec = { opSRAM };
+
+        core.castMessage("Info: Writing SRAM..");
+
+        if ( region == nullptr ) {
+            core.castMessage("Error: Unable to determine destination address");
+            return false;
+        }
+
+        memSpec.address = region->address;
+        memSpec.size    = core.fileSize;
+
+        // This isn't strictly necessary while sending manual buffers
+        core.setRange( &memSpec );
+
+        if ( fillDataBE4( memSpec.address, core.buffer, memSpec.size ) == false ) {
+            core.castMessage("Error: Unable to upload blob");
+            return false;
+        }
+
+        return true;
+    }
+
 public:
     iTrionic(bdmstuff & p)
-        : requests_cpu32(p) { }
+        : requests(p), requests_cpu32(p), iTarget( p ) { }
     ~iTrionic() { }
 
     virtual bool read(const target_t *, const memory_t *mem) {
@@ -189,6 +218,8 @@ public:
     virtual bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
             return writeFlash( txGeneric, target, region );
+        else if ( region->type == opSRAM )
+            return writeSRAM( txGeneric, target, region );
         return false;
     }
 };
@@ -196,9 +227,17 @@ public:
 class trionic_5
     : public iTrionic {
 public:
-    trionic_5( bdmstuff & core )
-        : iTrionic( core ) { }
+    trionic_5(bdmstuff &p)
+        : requests(p), iTrionic(p) { }
     ~trionic_5() { }
+
+    bool write( const target_t *target , const memory_t *region ) {
+        if ( region->type == opFlash )
+            return writeFlash( txTrionic5, target, region );
+        else if ( region->type == opSRAM )
+            return writeSRAM( txTrionic5, target, region );
+        return false;
+    }
 
     bool init(const target_t *, const memory_t *)
     {
@@ -276,24 +315,20 @@ public:
         config.Frequency = 6000000;
         return core.queue.send( setInterface( config ) );
     }
-
-    bool write( const target_t *target , const memory_t *region ) {
-        if ( region->type == opFlash )
-            return writeFlash( txTrionic5, target, region );
-        return false;
-    }
 };
 
 class trionic_7
     : public iTrionic {
 public:
-    trionic_7(bdmstuff &core)
-        : iTrionic(core) { }
+    trionic_7(bdmstuff &p)
+        : requests(p), iTrionic(p) { }
     ~trionic_7() { }
 
     bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
             return writeFlash( txTrionic7, target, region );
+        else if ( region->type == opSRAM )
+            return writeSRAM( txTrionic7, target, region );
         return false;
     }
 

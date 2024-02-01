@@ -14,10 +14,10 @@
 // E = SFC
 // F = DFC
 
-#define CPU32_SREG_PC    00
-#define CPU32_SREG_PCC   01
-#define CPU32_SREG_TMPA  08
-#define CPU32_SREG_FAR   09
+#define CPU32_SREG_PC    0
+#define CPU32_SREG_PCC   1
+#define CPU32_SREG_TMPA  8
+#define CPU32_SREG_FAR   9
 
 #define CPU32_SREG_VBR   10
 #define CPU32_SREG_STS   11
@@ -28,12 +28,10 @@
 #define CPU32_SREG_DFC   15
 
 class requests_cpu32
-    : public requests
-{
-
+    : public virtual requests {
 public:
-    explicit requests_cpu32( bdmstuff & m )
-        : requests( m ) {}
+    explicit requests_cpu32(bdmstuff &p)
+        : requests(p) {}
 
     uint16_t *readSystemRegister(uint16_t Reg) {
         return readRegister(0x2580 + (Reg & 0xF), sizeDword);

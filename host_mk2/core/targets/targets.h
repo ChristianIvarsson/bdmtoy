@@ -10,7 +10,7 @@ class bdmstuff;
 class iTarget;
 
 // Host specific target enum
-enum enTargTyp {
+enum enTargTyp : uint32_t {
     typeError      = 0,
     typeCPU32      = 1,   // CPU32 (68k architecture)
 };
@@ -47,7 +47,7 @@ protected:
 
 public:
     explicit iTarget( bdmstuff & p )
-        : core(p) { printf("iTarget::iTarget()\n"); }
+        : core(p) { }
     virtual ~iTarget() {}
 
     virtual bool init    ( const target_t *, const memory_t * ) { return false; }

@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "../../core/bdmstuff.h"
+#include "../../core/targets/target_helper.h"
 
 #include "tools.h"
 
@@ -109,19 +110,55 @@ static bool readSRAM( int32_t idx, const char *fName ) {
     return false;
 }
 
-static bool runSRAM( int32_t, const char *, const char* ) {
-    printf("Implement me\n");
-    return false;
+static bool runSRAM( int32_t idx, const char *fName, const char *memAddr ) {
+
+    memory_t memSpec = { opSRAM };
+    numchar hex( memAddr );
+    stopwatch tim;
+    bool status;
+
+    if ( !hex.isHex<uint64_t>() ) {
+        printf("Please input a valid memory address in hex\n");
+        return false;
+    }
+
+    memSpec.address = hex.asHex<uint64_t>();
+
+    if ((status = ( stuff.readFile( fName ) && stuff.write( &memSpec ) )) == true ) {
+
+        if ( bdmstuff::info( idx )->type == typeCPU32 ) {
+
+            helper_CPU32 test( stuff );
+
+            if ( !stuff.connect() )
+                return false;
+
+            tim.capture();
+            status = test.runPC( memSpec.address );
+            tim.capture();
+
+            printf("Info: spent %02d:%02d:%03d\n\n\n", tim.minutes, tim.seconds, tim.milliseconds);
+
+            if ( status )
+                status = test.printRegisters();
+
+            stuff.disconnect();
+        }
+        else {
+            status = false;
+            printf("I do not understand this target type yet!\n");
+        }
+    }
+
+    return status;
 }
-
-
 
 static bool nukeTarget( int32_t ) {
     printf("Implement me\n");
     return false;
 }
 
-static bool runWaitTarget( int32_t, const char *, const char* ) {
+static bool runWaitTarget( int32_t, const char *, const char * ) {
     printf("Implement me\n");
     return false;
 }

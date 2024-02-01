@@ -13,7 +13,8 @@ bdmworker::bdmworker( bdmstuff & par )
     : usb( par, *this ),
       core( par ),
       queue( *this ),
-      fileSize( file.readSize )
+      fileSize( file.readSize ),
+      buffer( file.buffer )
 {
     if ( (file.buffer = (uint8_t*)malloc( 8 * 1024 * 1024 )) == nullptr ) {
         printf("Catastrophic error - Could not allocate file buffer\n");
