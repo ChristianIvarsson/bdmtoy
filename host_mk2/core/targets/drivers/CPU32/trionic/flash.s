@@ -77,16 +77,16 @@
 #
 # There is no retry-counter so expect it to get stuck if the flash is broken.
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     movea.l #0x1007FC, sp          /* Reset stack pointer */
-    
+
     cmpi.b  #1       , d0
-    beq.b   WriteBuffer    
+    beq.b   WriteBuffer
     cmpi.b  #2       , d0
-    beq.b   FormatFlash    
+    beq.b   FormatFlash
     cmpi.b  #3       , d0
     beq.b   Syscfg
     cmpi.b  #4       , d0          /* Special case: Init MCP */
@@ -99,7 +99,7 @@ WriteBuffer:
     # Store number of WORDS to write
     movea.l #0x100000, a1
     move.w  #512     , d1
-    
+
     cmpi.w  #1       , d6
     beq.w   WriteBufferOLD
     cmpi.w  #2       , d6
@@ -109,12 +109,12 @@ WriteBuffer:
     cmpi.w  #4       , d6
     beq.w   WriteBufferMCP
     bra.b   NiceTry
-    
+
 FormatFlash:
 
     # Start from address 0
     suba.l  a0       , a0
-    
+
     cmpi.w  #1       , d6
     beq.w   FormatFlashOLD
     cmpi.w  #2       , d6
@@ -132,7 +132,7 @@ Syscfg:
 
     # This abomination requires further work..    
     moveq.l #1       , d0          /* Presume result to be ok   */
-    
+
     moveq.l #0x40    , d1          /* Used for H/W on Trionic 5 */
     movea.l #0xFFFC14, a0
 
@@ -147,7 +147,7 @@ Syscfg:
     move.w  a2       , (a2)
     move.w  d4       , (a6)
     move.w  #0x9090  , (a2)
-    
+
     bsr.b   Delay
 
     # Make a new copy of address 0 and compare
@@ -194,33 +194,33 @@ TryHW:
     lea     HVT      , a0          /* Address of id table */
     moveq.l #3       , d3          /* 3 sizes     */
     moveq.l #2       , d5
-   
+
 NextSize:
     moveq   #1       , d2
 HVtstL:
     cmp.b   (a0)+    , d7
     beq.w   ID_Match
     dbra    d2       , HVtstL
-    
+
     lsl.w   #1       , d5          /* double size */
     subq.b  #1       , d3
     bne.b   NextSize
     bra.b   UnkFlash
 
-# # # L/W flash # # # # # # # # #    
-    
+# # # L/W flash # # # # # # # # #
+
 LWFlash:
     moveq.l #8       , d5          /* Prepare size as 0x80000  */
     move.w  d7       , d1          /* Store another copy of ID */
     lsr.w   d5       , d1          /* Shift down manuf ID      */
 
-# Class 29 flash  
+# Class 29 flash
     cmpi.b  #0x01    , d1          /* AMD         */
     beq.b   Class29
     cmpi.b  #0x20    , d1          /* ST          */
-    beq.b   Class29 
+    beq.b   Class29
     cmpi.b  #0x1C    , d1          /* EON         */
-    beq.b   Class29 
+    beq.b   Class29
     cmpi.w  #0x37A4  , d7          /* AMIC    010 */
     beq.b   Size128
 
@@ -243,12 +243,12 @@ LWFlash:
 # Atmel
     moveq.l #3       , d6          /* Change drv  */
     cmpi.w  #0x1F5D  , d7          /* Atmel   512 */
-    beq.b   Size64    
+    beq.b   Size64
     cmpi.w  #0x1FD5  , d7          /* Atmel   010 */
     beq.b   Size128
     cmpi.w  #0x1FDA  , d7          /* Atmel   020 */
     beq.b   Size256
-    bra.b   UnkFlash    
+    bra.b   UnkFlash
 
 Unicorns:
     moveq.l #16      , d5          /* 256 K = 1 M */
@@ -306,7 +306,7 @@ WriteLoopAt:
     movea.l a1       , a4 
     move.w  d3       , d0
 
-CheckLAtW: 
+CheckLAtW:
     cmpm.w  (a4)+    , (a3)+
     bne.b   NotIdentAtW
     dbra    d0       , CheckLAtW
@@ -315,14 +315,14 @@ CheckLAtW:
     movea.l a4       , a1
 
     sub.w   d3       , d1
-    subq.w  #1       , d1      
+    subq.w  #1       , d1
     beq.b   WriteAtDone
     bra.b   WriteLoopAt
 
 NotIdentAtW:
     movea.l a0       , a3
     movea.l a1       , a4
-    move.w  d3       , d0 
+    move.w  d3       , d0
 
 # Unlock
     move.w  a2       , (a2)
@@ -333,14 +333,14 @@ WritePageAT:
     move.w  (a4)+    , (a3)+
     dbra    d0       , WritePageAT
 
-AtmelWaitW:                       
+AtmelWaitW:
     move.w  (a0)     , d0
     cmp.w   (a0)     , d0
     bne.b   AtmelWaitW
     bra.b   WriteLoopAt
-      
+
 WriteAtDone:
-    moveq.l #1       , d0   
+    moveq.l #1       , d0
 bgnd
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -353,10 +353,10 @@ bgnd
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 FormatFlashNEW:
-        
+ 
     cmp.w   (a0)     , d5
     beq.b   DataIdentToggle
-    
+
     move.w  a2       , (a2)
     move.w  d4       , (a6)
     move.w  #0x8080  , (a2)
@@ -367,13 +367,13 @@ FormatFlashNEW:
 
 ToggleWait:
     move.w  (a0)     , d2
-    cmp.w   (a0)     , d2   
+    cmp.w   (a0)     , d2
     bne.b   ToggleWait
     bra.b   FormatFlashNEW
-    
+
 DataIdentToggle:
     addq.l  #2       , a0
-    cmpa.l  a1       , a0      
+    cmpa.l  a1       , a0
     bcs.b   FormatFlashNEW
     moveq.l #1       , d0
 bgnd
@@ -384,19 +384,19 @@ bgnd
 WriteBufferNEW:
 
     cmpm.w  (a0)+    , (a1)+
-    beq.b   ToggleIdent      
+    beq.b   ToggleIdent
     move.w  a2       , (a2)
     move.w  d4       , (a6)
     move.w  #0xA0A0  , (a2)
     move.w  -(a1)    ,-(a0)
 
-ToggleWaitW:                       
+ToggleWaitW:
     move.w  (a0)     , d0
     cmp.w   (a0)     , d0
     bne.b   ToggleWaitW
 
     # Go back for verification
-    bra.b   WriteBufferNEW       
+    bra.b   WriteBufferNEW
 
 ToggleIdent:
     subq.w  #1       , d1
@@ -424,16 +424,16 @@ WriteLoop:
     cmpm.w  (a0)+    , (a1)+
     beq.b   dataident
 
-WriteLoopM:    
+WriteLoopM:
     # Send write command
     move.w  #0x4040  ,-(a0) 
     move.w -(a1)     , (a0) 
     bsr.b    Delay_10uS
-    
+
     # Send "Write compare" command
     move.w  #0xC0C0  , (a0)
     bsr.b   Delay_6uS
-    
+
     # Did it stick?
     cmpm.w  (a0)+    , (a1)+
     bne.b   DecWR
@@ -441,7 +441,7 @@ WriteLoopM:
     clr.w   -(a0)
     tst.w   -(a1)
     bra.b   WriteLoop
-DecWR:    
+DecWR:
     # Nope. Decrement tries and try again.. if allowed
     subq.b  #1       , d0
     bne.b   WriteLoopM
@@ -450,7 +450,7 @@ bgnd
 dataident:
     subq.w  #1       , d1
     bne.b   WriteBufferOLD
-    
+
     moveq.l #1       , d0
     # CAT28f plays the b*tch-game. Make sure it is in read mode..
     clr.w   (a0)
@@ -472,29 +472,29 @@ us6loop:
 rts
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-   
+
 FormatFlashOLD:
 
     # Zero flash
     # Make a copy of start addr
-    movea.l a0       , a2  
-OOResTries:                 
+    movea.l a0       , a2
+OOResTries:
     moveq.l #25      , d0
 
 OOloop:
     tst.w   (a2)+
     beq.b   OOisOO
-BoostOO:    
+BoostOO:
     move.w  #0x4040  ,-(a2)
-    clr.w   (a2)        
-    bsr.b   Delay_10uS  
+    clr.w   (a2)
+    bsr.b   Delay_10uS
     move.w  #0xC0C0  , (a2)
     bsr.b   Delay_6uS
     tst.w   (a2)+
     bne.b   DecOO
     clr.w   -(a2)
-    bra.b   OOloop   
-DecOO:    
+    bra.b   OOloop
+DecOO:
     subq.b  #1       , d0 
     beq.b   EndFF
     bra.b   BoostOO
@@ -506,30 +506,30 @@ OOisOO:
     move.w  #1000    , d0          /* Maximum number of tries */
     move.w  #0x2020  , d1
 
-FFloop:                     
+FFloop:
     cmp.w   (a0)+    , d5
     beq.b   DataisFF
     move.w  d1       ,-(a0)
     move.w  d1       , (a0)
 
     move.w  #0x4240  , d3          /* Wait for 10~ mS (10,05 ish)     */
-mSloop:                     
-    dbra d3, mSloop   
+mSloop:
+    dbra d3, mSloop
 
     move.w  #0xA0A0  , (a0)
-    bsr.b   Delay_6uS            
+    bsr.b   Delay_6uS
     cmp.w   (a0)     , d5
     bne.b   DecFF
-    clr.w   (a0)        
+    clr.w   (a0)
     bra.b   FFloop
-DecFF:    
+DecFF:
     subq.w  #1       , d0
     beq.b   EndFF
-DataisFF:           
+DataisFF:
     cmpa.l    a1     , a0
     bcs.b   FFloop
     moveq.l #1       , d0
-   
+
 EndFF:
 bgnd
 
@@ -561,7 +561,7 @@ InitMCP:
     moveq.l #4       , d6          /* Set driver to MCP     */
     moveq.l #1       , d0
     bsr.w   DisShadow
-bgnd    
+bgnd
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -611,7 +611,7 @@ PageFill:
     move.w  (a3)+    , (a2)+
     subq.w  #2       , d3
     bne.b   PageFill
-    
+
 WritePulse:
     ori.w   #0x0001  , (a6)        /* Enable high voltage            */
 VppActiveW:                        /* Wait for VPP to go low         */
@@ -707,8 +707,8 @@ VppActiveE:                        /* Wait for Vpp low  */
     bne.b   FormatMCPL
 
     moveq.l #1       , d0          /* Finally done      */
-bgnd    
-    
+bgnd
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
