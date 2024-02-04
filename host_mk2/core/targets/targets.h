@@ -42,12 +42,8 @@ typedef struct {
 
 class iTarget {
 
-protected:
-    bdmstuff & core;
-
 public:
-    explicit iTarget( bdmstuff & p )
-        : core(p) { }
+    explicit iTarget() {}
     virtual ~iTarget() {}
 
     virtual bool init    ( const target_t *, const memory_t * ) { return false; }

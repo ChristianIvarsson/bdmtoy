@@ -28,13 +28,13 @@ uint16_t *writeArrayMemory ( uint32_t Address ,  uint16_t *Data,  uint32_t Lengt
 
 class requests {
 
-    bdmstuff & rCore;
     uint16_t buf[ 4096 ];
 
     // "payload"[[cmd], [cmd + data len, words], [data (if present)]]
 public:
+    bdmstuff & core;
     explicit requests( bdmstuff & m )
-        : rCore( m ) { }
+        : core( m ) { }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,8 +163,8 @@ public:
         bool retval = true;
 
         if ( tmp == nullptr ) {
-            rCore.castMessage("Error: fillDataBE2 - Could not malloc buffer");
-            return rCore.flagStatus(RET_MALLOC);
+            core.castMessage("Error: fillDataBE2 - Could not malloc buffer");
+            return core.flagStatus(RET_MALLOC);
         }
 
         *(uint16_t *)tmp = TAP_DO_FILLMEM;
@@ -195,7 +195,7 @@ public:
             *(uint32_t *)&tmp[8] = actToSend;
             Addr += actToSend;
 
-            retval = rCore.queue.send( (uint16_t*)tmp );
+            retval = core.queue.send( (uint16_t*)tmp );
         }
 
         free( tmp );
@@ -209,8 +209,8 @@ public:
         bool retval = true;
 
         if ( tmp == nullptr ) {
-            rCore.castMessage("Error: fillDataBE4 - Could not malloc buffer");
-            return rCore.flagStatus(RET_MALLOC);
+            core.castMessage("Error: fillDataBE4 - Could not malloc buffer");
+            return core.flagStatus(RET_MALLOC);
         }
 
         *(uint16_t *)tmp = TAP_DO_FILLMEM;
@@ -241,7 +241,7 @@ public:
             *(uint32_t *)&tmp[8] = actToSend;
             Addr += actToSend;
 
-            retval = rCore.queue.send( (uint16_t*)tmp );
+            retval = core.queue.send( (uint16_t*)tmp );
         }
 
         free( tmp );
@@ -261,8 +261,6 @@ public:
         *(uint32_t *)&buf[6]  = DriverStart;
         *(uint32_t *)&buf[8]  = BufferStart;
         *(uint32_t *)&buf[10] = BufferLen;
-
-        // wrk_ResetflashDone();
 
         return buf;
     }

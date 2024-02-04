@@ -2,11 +2,11 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Trionic related code
 
+#include <cstring>
 #include "../bdmstuff.h"
-
 #include "targets.h"
-
 #include "../requests_cpu32.h"
+#include "utils_cpu32.h"
 
 #include "drivers/CPU32/trionic/txdriver.h"
 
@@ -19,9 +19,9 @@ enum txFamily : uint32_t {
 };
 
 class iTrionic
-    : public requests_cpu32, public iTarget {
+    : public cpu32_utils, public virtual requests_cpu32, public iTarget {
 
-    bool driverDemand( uint32_t what ) {
+    bool driverDemand( uint32_t what, uint32_t driverBase = 0x100400 ) {
         bool retval;
         uint16_t status;
         uint32_t driverResponse;
@@ -33,7 +33,7 @@ class iTrionic
         }
 
         // Set program counter to 10_0400
-        if ( !core.queue.send(writeSystemRegister( 0, 0x100400 )) ) {
+        if ( !core.queue.send(writeSystemRegister( 0, driverBase )) ) {
             core.castMessage("Error: driverDemand - Could not set program counter");
             return false;
         }
@@ -178,6 +178,83 @@ protected:
         return core.queue.send(targetReset());
     }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// WIP
+
+    bool writeFlash_mk2( txFamily gen, const target_t *, const memory_t *region ) {
+
+        md5k_t remoteKeys, localKeys;
+        flashid_t fID = { 0 };
+        parthelper pid;
+        crypto::md5 local_md5;
+
+        if ( region == nullptr ) {
+            core.castMessage("Error: This routine needs to know base address");
+            return false;
+        }
+        if ( region->type != opFlash ) {
+            core.castMessage("Error: This routine only knows how to deal with flash");
+            return false;
+        }
+
+        core.setTimeout( 61 * 1000 );
+
+
+
+        uint32_t flashBase = region->address;
+
+        flash.detect( fID, 0x100000, flashBase );
+
+        // Get address map of this flash
+        const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
+
+        if ( part == nullptr ) {
+            core.castMessage("Error: Host does not understand this flash");
+            return false;
+        }
+
+        if ( part->count > 32 || part->count == 0 ) {
+            core.castMessage("Error: Partition count out of bounds");
+            return false;
+        }
+
+
+
+        core.castMessage("Info: Comparing md5..");
+
+        uint32_t mask = 0;
+        md5.upload( 0x100000, true );
+
+        for ( size_t i = 0; i < part->count; i++) {
+            uint32_t start  = (i == 0) ? 0 : part->partitions[ i - 1 ];
+            uint32_t length = part->partitions[ i ] - start;
+
+            local_md5.hash( &localKeys, &core.buffer[ start ], length );
+
+            // Flash base does not necessarily sit at 0 so this has to be appended after the local file has been hashed
+            start += flashBase;
+
+            md5.hash( &remoteKeys, start, length, true );
+
+            if ( memcmp( &remoteKeys, &localKeys, sizeof(md5k_t) ) != 0 ) {
+                mask |= ( 1 << i );
+                core.castMessage("Info: part %2u (%06x - %06x) - different", i, start, start + length - 1);
+            } else {
+                core.castMessage("Info: part %2u (%06x - %06x) - identical", i, start, start + length - 1);
+            }
+        }
+
+        core.castMessage("Info: Partition mask %08x", mask);
+
+        if ( mask == 0 ) {
+            core.castMessage("Info: Everything is identical");
+            return true;
+        }
+
+        return false;
+    }
+
     bool writeSRAM( txFamily gen, const target_t *, const memory_t *region ) {
         memory_t memSpec = { opSRAM };
 
@@ -204,7 +281,7 @@ protected:
 
 public:
     iTrionic(bdmstuff & p)
-        : requests(p), requests_cpu32(p), iTarget( p ) { }
+        : requests(p), requests_cpu32(p), cpu32_utils(p) { }
     ~iTrionic() { }
 
     virtual bool read(const target_t *, const memory_t *mem) {
@@ -228,7 +305,7 @@ class trionic_5
     : public iTrionic {
 public:
     trionic_5(bdmstuff &p)
-        : requests(p), iTrionic(p) { }
+        : requests(p), requests_cpu32(p), iTrionic(p) { }
     ~trionic_5() { }
 
     bool write( const target_t *target , const memory_t *region ) {
@@ -317,11 +394,12 @@ public:
     }
 };
 
+
 class trionic_7
     : public iTrionic {
 public:
     trionic_7(bdmstuff &p)
-        : requests(p), iTrionic(p) { }
+        : requests(p), requests_cpu32(p), iTrionic(p) { }
     ~trionic_7() { }
 
     bool write( const target_t *target , const memory_t *region ) {
@@ -413,5 +491,5 @@ iTarget *instTrionic5(bdmstuff &core) {
 }
 
 iTarget *instTrionic7(bdmstuff &core) {
-    return new trionic_7(core);
+    return new trionic_7( core );
 }
