@@ -177,8 +177,8 @@ int main(int argc, char *argv[]) {
                "    --dump <file>                 - Dump target to file\n"
                "    --flash <file>                - Flash target from file\n"
                "    --runsram <file> <address>    - Upload blob to address and run it\n"
-               "    --runwait <file> <address>    - Reset and run target, wait for it to enter bdm on its own, upload blob and then resume operation (Only target 7)\n"
-               "    --nuke                        - Nuke hcs12 flash (Only target 6)\n");
+               "    --runwait <file> <address>    - Reset and run target, wait for it to enter bdm on its own, upload blob and then resume operation\n"
+               "    --nuke                        - Nuke hcs12 flash\n");
         return 1;
     }
 
