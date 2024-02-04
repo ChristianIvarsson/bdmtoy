@@ -17,20 +17,16 @@ class target_helper
     : public virtual requests {
 
 protected:
-    bdmstuff & core;
     bool printReglist( const regSummary_t *, size_t count );
 
 public:
     explicit target_helper( bdmstuff & m )
-        : requests(m), core(m) {}
+        : requests(m) {}
     virtual ~target_helper() {}
 
-    virtual bool backupRegisters()  { return false; }
-    virtual bool restoreRegisters() { return false; }
     virtual bool printRegisters()   { return false; }
     virtual bool runPC( uint64_t )  { return false; }
     virtual bool setPC( uint64_t )  { return false; }
-    virtual bool getPC( uint64_t )  { return false; }
 };
 
 class helper_CPU32
@@ -43,6 +39,7 @@ public:
 
     bool printRegisters();
     bool runPC( uint64_t );
+    bool setPC( uint64_t );
 };
 
 #endif
