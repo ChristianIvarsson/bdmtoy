@@ -54,11 +54,11 @@ bool writeLine( const char *buf, FILE *write ) {
     return false;
 }
 
-void makeHeader( FILE *read, size_t length, FILE *write, const char *hdr ) {
+void makeHeader( FILE *read, size_t length, FILE *write, const char *name, const char *hdr ) {
     char    txtBuf[ 256 ];
     uint8_t datBuf[ 16 ];
 
-    printf("Outputting file..\n");
+    printf("Generating %s in file %s..\n", hdr, name);
 
     if ( snprintf(txtBuf, sizeof(txtBuf), "static const uint8_t %s[] = {\r\n", hdr) < 1 ) {
         printf("Error: makeHeader() - Unable to generate output\n");
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    makeHeader( readFp, readLen, writeFp, argv[3] );
+    makeHeader( readFp, readLen, writeFp, argv[2], argv[3] );
 
     fclose( readFp );
     fclose( writeFp );
