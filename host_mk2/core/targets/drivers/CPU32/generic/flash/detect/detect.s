@@ -68,10 +68,10 @@ repDelay:
 # 16-bit would return     0001 EXID
 
     # Shift down MSB and check if it's the same
-    # move.w   flMID       , d1
-    # lsr.w    #8          , d1
-    # cmp.b    d1          , flMID
-    # beq.b    flash2x8
+    move.w   flMID       , d1
+    lsr.w    #8          , d1
+    cmp.b    d1          , flMID
+    beq.b    flash2x8
 
 _1x16flash:
 

@@ -8,8 +8,6 @@ all:
 	@$(MAKE) --no-print-directory -C detect
 
 header: all
-	@echo " "
-	@echo "Generating header files.."
 	@./headertool driver/out/gendriver.bin driver/gendriver.h genDriver
 	@./headertool detect/out/gendetect.bin detect/gendetect.h genDetect
 

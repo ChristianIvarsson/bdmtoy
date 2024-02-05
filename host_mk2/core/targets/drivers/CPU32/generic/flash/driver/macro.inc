@@ -1,47 +1,30 @@
-.set opReg  , d0
-.set retReg , d0
 
-# Init
-# These are ONLY valid directly after init has run.
-.set flMID , d4
-.set flPID , d5
-.set flLen , d6
+# Overall
+.set opReg    , d0  /* What to do */
+.set retReg   , d0  /* Returned status. 1 == ok */
+.set flashType, d7  /* Driver needs to know which flash to talk to */
 
 
+# 4 - Init
+.set baseAddr , a0  /* Flash base */
+.set spTemp   , a1  /* Used when setting stack pointer */
+
+# 2,3 - Erase
+.set eraseAddr, a0  /* Erase from / currently erased address */
+.set endAddr  , a1  /* Erase up to this address */
 
 
-# Init, erase, write
-.set dstAddr, a0
-.set flsTyp , d7
 
-# Erase
-.set endAddr, a1
-.set ffReg  , d4
 
-# Write
-.set wrLen  , d1
-.set srcAddr, a1
-.set srcBck , a3
-.set lenBck , d4
+# 1 - Write
+.set writeDst , a0  /* Write from / currrently written address */
+.set writeSrc , a1  /* Source data buffer address */
+.set writeLen , d1  /* Number of bytes to write */
+
+.set wrkLen   , d2  /* Internal - write counter */
+.set wrkSrc   , a2  /* Internal - source pointer */
+
 
 # Junk
-.set tmpRegA, d5
-.set tmpRegB, d6
-
-
-
-# Flash command offsets
-.set addrA, a4
-.set addrB, a5
-
-# Prestored commands
-.set cmdA  , d2
-.set cmdB  , d3
-
-
-# Regular command macro
-.macro lwCMD  _CMD
-    move.w   cmdA        , (addrA) /* Send 0xAAAA  to address 0xAAAA(base) */
-    move.w   cmdB        , (addrB) /* Send 0x5555  to address 0x5554(base) */
-    move.w   #\_CMD      , (addrA) /* Send command to address 0xAAAA(base) */
-.endm
+.set tmpRegA  , d3
+.set ffReg    , d4  /* Automatically set to ffff before erase */

@@ -4,10 +4,7 @@
 // This needs a lot of work but it works well enough for what it's used for
 
 typedef struct {
-    uint32_t A;
-    uint32_t B;
-    uint32_t C;
-    uint32_t D;
+    uint32_t A, B, C, D;
 } md5k_t;
 
 namespace crypto {

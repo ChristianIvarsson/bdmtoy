@@ -13,211 +13,511 @@
 #include "drivers/CPU32/generic/flash/genflash.h"
 #include "drivers/CPU32/generic/md5/md5.h"
 
-class cpu32_utils : public virtual requests_cpu32 {
-
-    class md5 {
-        cpu32_utils & utl;
-        uint32_t driverBase;
-    public:
-        explicit md5(cpu32_utils &p)
-            : utl(p) {
-            driverBase = 0;
-        }
-
-        bool upload( uint32_t address, bool silent = false ) {
-
-            driverBase = address;
-
-            // Upload driver
-            if ( !silent )
-                utl.core.castMessage("Info: Uploading md5 hash driver..");
-
-            if ( utl.fillDataBE4( address, CPU32_md5, sizeof(CPU32_md5) ) == false ) {
-                utl.core.castMessage("Error: Unable to upload driver");
-                return false;
-            }
-
-            return true;
-        }
-
-        bool hash( md5k_t *keys, uint32_t start, uint32_t length, bool silent = false ) {
-            uint16_t status;
-            bool retVal;
-
-            if ( keys == nullptr ) {
-                utl.core.castMessage("Error: md5 - Need a key buffer");
-                return false;
-            }
-
-            utl.core.queue  = utl.writeAddressRegister( 0, start );
-            utl.core.queue += utl.writeDataRegister( 0, length );
-            utl.core.queue += utl.writeSystemRegister( 0, driverBase );
-            utl.core.queue += utl.targetStart();
-
-            if ( !utl.core.queue.send() ) {
-                utl.core.castMessage("Error: md5 - Unable to configure and/or start driver");
-                return false;
-            }
-
-            if ( !silent )
-                utl.core.castMessage("Info: Hashing..");
-
-            do {
-                retVal = utl.core.getStatus( &status );
-                sleep_ms( 25 );
-            } while ( retVal && status == RET_TARGETRUNNING );
-
-            if ( status != RET_TARGETSTOPPED ) {
-                utl.core.castMessage("Error: md5 - Could not stop target");
-                return false;
-            }
-
-            utl.core.queue  = utl.readAddressRegister( 2 );
-            utl.core.queue += utl.readAddressRegister( 3 );
-            utl.core.queue += utl.readAddressRegister( 4 );
-            utl.core.queue += utl.readAddressRegister( 5 );
-
-            if ( utl.core.queue.send() == false ||
-                 utl.core.getData( &((uint16_t*)keys)[0], TAP_DO_READREGISTER, 4, 0 ) == false ||
-                 utl.core.getData( &((uint16_t*)keys)[2], TAP_DO_READREGISTER, 4, 1 ) == false ||
-                 utl.core.getData( &((uint16_t*)keys)[4], TAP_DO_READREGISTER, 4, 2 ) == false ||
-                 utl.core.getData( &((uint16_t*)keys)[6], TAP_DO_READREGISTER, 4, 3 ) == false ) {
-                 utl.core.castMessage("Error: Unable to retrieve flash information");
-                return false;
-            }
-
-            // This needs to die
-            keys->A = bs32(keys->A);
-            keys->B = bs32(keys->B);
-            keys->C = bs32(keys->C);
-            keys->D = bs32(keys->D);
-
-            return true;
-        }
-    };
-
-    class flashdrv {
-        cpu32_utils & utl;
-        uint32_t driverBase;
-    public:
-        explicit flashdrv(cpu32_utils &p)
-            : utl(p) {
-            driverBase = 0;
-        }
-
-        bool upload( uint32_t address ) {
-
-            driverBase = address;
-
-            // Upload driver
-            utl.core.castMessage("Info: Uploading flash driver..");
-
-            if ( utl.fillDataBE4( address, genDriver, sizeof(genDriver) ) == false ) {
-                utl.core.castMessage("Error: Unable to upload driver");
-                return false;
-            }
-
-            return true;
-        }
-
-        bool detect( flashid_t & id, uint32_t destination, uint32_t flashBase = 0 ) {
-            uint16_t status;
-            bool retVal;
-
-            // Upload driver
-            utl.core.castMessage("Info: Uploading detect driver..");
-
-            if ( utl.fillDataBE4( destination, genDetect, sizeof(genDetect) ) == false ) {
-                utl.core.castMessage("Error: Unable to upload driver");
-                return false;
-            }
-
-            utl.core.queue  = utl.writeAddressRegister( 0, flashBase );
-            utl.core.queue += utl.writeSystemRegister( 0, destination );
-            utl.core.queue += utl.targetStart();
-
-            if ( !utl.core.queue.send() ) {
-                utl.core.castMessage("Error: detect - Unable to configure and/or start driver");
-                return false;
-            }
-
-            utl.core.castMessage("Info: Waiting..");
-
-            do {
-                retVal = utl.core.getStatus( &status );
-                sleep_ms( 25 );
-            } while ( retVal && status == RET_TARGETRUNNING );
-
-            if ( status != RET_TARGETSTOPPED ) {
-                utl.core.castMessage("Error: detect - Could not stop target");
-                return false;
-            }
-
-
-            uint16_t idTemp[ 8 ];
-            utl.core.castMessage("Info: Retrieving flash info..");
-
-            utl.core.queue  = utl.readDataRegister( 4 ); // MID
-            utl.core.queue += utl.readDataRegister( 5 ); // DID / PID
-            utl.core.queue += utl.readDataRegister( 6 ); // Size
-            utl.core.queue += utl.readDataRegister( 7 ); // Type
-
-            if ( utl.core.queue.send() == false ||
-                utl.core.getData( &idTemp[0], TAP_DO_READREGISTER, 4, 0 ) == false || // MID
-                utl.core.getData( &idTemp[2], TAP_DO_READREGISTER, 4, 1 ) == false || // DID / PID
-                utl.core.getData( &idTemp[4], TAP_DO_READREGISTER, 4, 2 ) == false || // Size
-                utl.core.getData( &idTemp[6], TAP_DO_READREGISTER, 4, 3 ) == false ){ // Type
-                utl.core.castMessage("Error: Unable to retrieve flash information");
-                return false;
-            }
-
-            uint32_t flashSize = *(uint32_t *) &idTemp[4];
-            uint32_t flashType = *(uint32_t *) &idTemp[6];
-
-            utl.core.castMessage("Info: MID    %04X", idTemp[0]);
-            utl.core.castMessage("Info: DID    %04X", idTemp[2]);
-            utl.core.castMessage("Info: base %06x"  , flashBase);
-            utl.core.castMessage("Info: size %06X"  , flashSize); 
-
-            switch ( flashType ) {
-            case 1:  utl.core.castMessage("Info: Old H/W flash"); break;
-            case 2:  utl.core.castMessage("Info: Modern toggle flash"); break;
-            case 3:  utl.core.castMessage("Info: Disgusting Atmel flash.."); break;
-            default: utl.core.castMessage("Error: Driver does not understand this flash"); return false;
-            }
-
-            id.MID = idTemp[0];
-            id.DID = idTemp[2];
-
-            return true;
-        }
-
-    };
-
-
-protected:
-
-    md5 md5;
-    flashdrv flash;
-
-
-
-
+class CPU32_genmd5 : public virtual requests_cpu32 {
+    bdmstuff & mdCore;
+    uint32_t driverBase;
 public:
-
-    explicit cpu32_utils(bdmstuff &p)
-        : requests(p), requests_cpu32(p), md5(*this), flash(*this) {
-            printf("cpu32_utils()\n");
+    explicit CPU32_genmd5(bdmstuff &p)
+        : requests(p), requests_cpu32(p), mdCore(p) {
+        driverBase = 0;
     }
 
+    bool upload(uint32_t address, bool silent = false) {
+        driverBase = address;
+
+        // Upload driver
+        if ( !silent )
+            mdCore.castMessage("Info: Uploading md5 hash driver..");
+
+        if ( fillDataBE4(address, CPU32_md5, sizeof(CPU32_md5)) == false ) {
+            mdCore.castMessage("Error: Unable to upload driver");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool hash(md5k_t *keys, uint32_t start, uint32_t length, bool silent = false) {
+        uint16_t status;
+        bool retVal;
+
+        if ( keys == nullptr ) {
+            mdCore.castMessage("Error: md5 - Need a key buffer");
+            return false;
+        }
+
+        mdCore.queue  = writeAddressRegister(0, start);
+        mdCore.queue += writeDataRegister(0, length);
+        mdCore.queue += writeSystemRegister(0, driverBase);
+        mdCore.queue += targetStart();
+
+        if ( !mdCore.queue.send() ) {
+            mdCore.castMessage("Error: md5 - Unable to configure and/or start driver");
+            return false;
+        }
+
+        if ( !silent )
+            mdCore.castMessage("Info: Hashing..");
+
+        do {
+            retVal = mdCore.getStatus(&status);
+            sleep_ms(25);
+        } while ( retVal && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            mdCore.castMessage("Error: md5 - Could not stop target");
+            return false;
+        }
+
+        mdCore.queue  = readAddressRegister(2);
+        mdCore.queue += readAddressRegister(3);
+        mdCore.queue += readAddressRegister(4);
+        mdCore.queue += readAddressRegister(5);
+
+        if ( mdCore.queue.send() == false ||
+             mdCore.getData(&((uint16_t *)keys)[0], TAP_DO_READREGISTER, 4, 0) == false ||
+             mdCore.getData(&((uint16_t *)keys)[2], TAP_DO_READREGISTER, 4, 1) == false ||
+             mdCore.getData(&((uint16_t *)keys)[4], TAP_DO_READREGISTER, 4, 2) == false ||
+             mdCore.getData(&((uint16_t *)keys)[6], TAP_DO_READREGISTER, 4, 3) == false)
+        {
+            mdCore.castMessage("Error: Unable to retrieve flash information");
+            return false;
+        }
+
+        // This needs to die
+        keys->A = bs32(keys->A);
+        keys->B = bs32(keys->B);
+        keys->C = bs32(keys->C);
+        keys->D = bs32(keys->D);
+
+        return true;
+    }
+};
+
+class CPU32_genflash : public virtual requests_cpu32 {
+        bdmstuff &fCore;
+        uint32_t driverBase;
+        uint32_t flashType;
+        uint32_t flashSize;
+        uint32_t flashBase;
+        uint32_t bufferBase;
+        bool flashKnown;
+        bool driverInited;
+
+    void clearFlashParams() {
+        flashType = 0;
+        flashSize = 0;
+        flashKnown = false;
+    }
+
+    bool doBulkErase(uint32_t start, uint32_t end) {
+        uint16_t status;
+        bool retVal;
+
+        fCore.castMessage("Info: Erasing %06x - %06x..", start, end - 1);
+        // fCore.castMessage("Info: Driver base %08x", driverBase);
+
+        fCore.queue  = writeDataRegister(0, 3);
+        fCore.queue += writeAddressRegister(0, start);
+        fCore.queue += writeAddressRegister(1, end);
+        fCore.queue += writeSystemRegister(0, driverBase);
+        fCore.queue += targetStart();
+
+        if ( !fCore.queue.send() ) {
+            fCore.castMessage("Error: Unable to configure and/or start erase");
+            return false;
+        }
+
+        do {
+            retVal = fCore.getStatus(&status);
+            sleep_ms(25);
+        } while ( retVal && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            fCore.castMessage("Error: Could not stop target");
+            return false;
+        }
+
+        return getStatus("erase");
+    }
+
+    bool doSectorErase(uint32_t start, uint32_t end) {
+        uint16_t status;
+        bool retVal;
+
+        fCore.castMessage("Info: Erasing %06x - %06x..", start, end - 1);
+        // fCore.castMessage("Info: Driver base %08x", driverBase);
+
+        fCore.queue  = writeDataRegister(0, 2);
+        fCore.queue += writeAddressRegister(0, start);
+        fCore.queue += writeAddressRegister(1, end);
+        fCore.queue += writeSystemRegister(0, driverBase);
+        fCore.queue += targetStart();
+
+        if ( !fCore.queue.send() ) {
+            fCore.castMessage("Error: Unable to configure and/or start erase");
+            return false;
+        }
+
+        do {
+            retVal = fCore.getStatus(&status);
+            sleep_ms(25);
+        } while ( retVal && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            fCore.castMessage("Error: Could not stop target");
+            return false;
+        }
+
+        return getStatus("erase");
+    }
+
+public:
+    explicit CPU32_genflash(bdmstuff &p)
+        : requests(p), requests_cpu32(p), fCore(p) {
+        driverBase = 0;
+        flashBase = 0;
+        bufferBase = 0;
+        driverInited = false;
+        clearFlashParams();
+    }
+
+    // Upload flash detection driver and detect flash
+    bool detect(flashid_t &id, uint32_t destination, uint32_t flshbase = 0) {
+        uint16_t idTemp[8];
+        uint16_t status;
+        bool retVal;
+
+        clearFlashParams();
+        driverInited = false;
+
+        flashBase = flshbase;
+
+        // Upload driver
+        fCore.castMessage("Info: Uploading detect driver..");
+
+        if ( fillDataBE4(destination, genDetect, sizeof(genDetect)) == false ) {
+            fCore.castMessage("Error: Unable to upload driver");
+            return false;
+        }
+
+        fCore.queue  = writeAddressRegister(0, flshbase);
+        fCore.queue += writeSystemRegister(0, destination);
+        fCore.queue += targetStart();
+
+        if ( !fCore.queue.send() ) {
+            fCore.castMessage("Error: detect - Unable to configure and/or start driver");
+            return false;
+        }
+
+        fCore.castMessage("Info: Waiting..");
+
+        do {
+            retVal = fCore.getStatus(&status);
+            sleep_ms(25);
+        } while ( retVal && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            fCore.castMessage("Error: detect - Could not stop target");
+            return false;
+        }
+
+        fCore.castMessage("Info: Retrieving flash info..");
+
+        fCore.queue  = readDataRegister(4); // MID
+        fCore.queue += readDataRegister(5); // DID / PID
+        fCore.queue += readDataRegister(6); // Size
+        fCore.queue += readDataRegister(7); // Type
+
+        if ( fCore.queue.send() == false ||
+             fCore.getData(&idTemp[0], TAP_DO_READREGISTER, 4, 0) == false || // MID
+             fCore.getData(&idTemp[2], TAP_DO_READREGISTER, 4, 1) == false || // DID / PID
+             fCore.getData(&idTemp[4], TAP_DO_READREGISTER, 4, 2) == false || // Size
+             fCore.getData(&idTemp[6], TAP_DO_READREGISTER, 4, 3) == false ){ // Type
+            fCore.castMessage("Error: Unable to retrieve flash information");
+            return false;
+        }
+
+        flashSize = *(uint32_t *)&idTemp[4];
+        flashType = *(uint32_t *)&idTemp[6];
+
+        fCore.castMessage("Info: MID    %04X", idTemp[0]);
+        fCore.castMessage("Info: DID    %04X", idTemp[2]);
+        fCore.castMessage("Info: base %06x", flshbase);
+        fCore.castMessage("Info: size %06X", flashSize);
+
+        if ( flashSize == 0 ) {
+            fCore.castMessage("Error: Driver does not understand this flash");
+            clearFlashParams();
+            return false;
+        }
+
+        switch ( flashType ) {
+        case 1: fCore.castMessage("Info: Old H/W flash"); break;
+        case 2: fCore.castMessage("Info: Modern toggle flash"); break;
+        case 3: fCore.castMessage("Info: Atmel eeprom flash type 1"); break;
+        default:
+            fCore.castMessage("Error: Driver does not understand this flash");
+            clearFlashParams();
+            return false;
+        }
+
+        id.MID = idTemp[0];
+        id.DID = idTemp[2];
+
+        flashKnown = true;
+
+        return true;
+    }
+
+    bool getStatus(const char *who) {
+        uint16_t flTemp[2];
+        uint32_t status;
+        if ( fCore.queue.send( readDataRegister(0) ) == false ||
+             fCore.getData(flTemp, TAP_DO_READREGISTER, 4, 0) == false ){ // Status
+            fCore.castMessage("Error: Unable to retrieve %s status", who);
+            return false;
+        }
+
+        status = *(uint32_t *)flTemp;
+
+        if ( status != 1 ) {
+            fCore.castMessage("Error: %s flagged a fault", who);
+            return false;
+        }
+        return true;
+    }
+
+    // Upload and init flash / erase driver
+    bool upload(uint32_t destination, uint32_t buffer) {
+        
+        uint16_t status;
+        bool retVal;
+
+        if ( !flashKnown ) {
+            fCore.castMessage("Error: You must detect flash before uploading the flash driver");
+            return false;
+        }
+
+        driverBase = destination;
+        bufferBase = buffer;
+        driverInited = false;
+
+        // Upload driver
+        fCore.castMessage("Info: Uploading flash driver..");
+
+        if ( fillDataBE4(destination, genDriver, sizeof(genDriver)) == false ) {
+            fCore.castMessage("Error: Unable to upload driver");
+            return false;
+        }
+
+        fCore.queue  = writeDataRegister(0, 4);
+        fCore.queue += writeDataRegister(7, flashType);
+        fCore.queue += writeAddressRegister(0, flashBase);
+        fCore.queue += writeSystemRegister(0, destination);
+        fCore.queue += targetStart();
+
+        if ( !fCore.queue.send() ) {
+            fCore.castMessage("Error: Unable to configure and/or start driver");
+            return false;
+        }
+
+        do {
+            retVal = fCore.getStatus(&status);
+            sleep_ms(25);
+        } while ( retVal && status == RET_TARGETRUNNING );
+
+        if ( status != RET_TARGETSTOPPED ) {
+            fCore.castMessage("Error: Could not stop target");
+            return false;
+        }
+
+        if ( !getStatus("init") )
+            return false;
+
+        driverInited = true;
+
+        return true;
+    }
+
+    // Erase flash
+    bool erase(const flashpart_t *part, uint32_t mask, uint32_t chipCount = 1) {
+
+        uint32_t Start = flashBase;
+
+        if ( !driverInited ) {
+            fCore.castMessage("Error: You must upload the flash driver before using this feature");
+            return false;
+        }
+
+        if ( chipCount > 2 || chipCount == 0 || part == nullptr || part->count == 0 ) {
+            fCore.castMessage("Error: Need valid partition parameters");
+            return false;
+        }
+
+        // Perform bulk erase
+        if ( mask == 0 || part->count == 1 )
+            return doBulkErase( flashBase, flashBase + (part->partitions[ part->count - 1 ] * chipCount) );
+
+        // Sector erase
+        for ( uint32_t i = 0; i < part->count; i++ ) {
+
+            if ( ((1 << i) & mask) != 0 ) {
+                if ( !doSectorErase(Start, flashBase + (part->partitions[ i ] * chipCount)) )
+                    return false;
+            }
+
+            // Map stores the last address of every partition + 1
+            Start = flashBase + (part->partitions[ i ] * chipCount);
+        }
+
+        return true;
+    }
+
+    // Write flash
+    // Couple of adapter quirks in CPU32 mode that must be known:
+    // 1 - It won't adjust buffer size according to remaining length so request must be in multiples of that
+    // 2 - There must never be less than 8 bytes per write iteration
+    // 3 - Everything must be in multiples of 4
+    bool write(const flashpart_t *part, uint32_t mask, uint32_t chipCount = 1) {
+
+        uint32_t Start = flashBase;
+        uint32_t maskOffs = 0;
+        memory_t memSpec = { opFlash };
+
+        if ( !driverInited ) {
+            fCore.castMessage("Error: You must upload the flash driver before using this feature");
+            return false;
+        }
+
+        if ( chipCount > 2 || chipCount == 0 || part == nullptr || part->count == 0 ) {
+            fCore.castMessage("Error: Need valid partition parameters");
+            return false;
+        }
+
+        if ( part->count > 32 ) {
+            fCore.castMessage("Error: I don't know what to do with this many partitions!");
+            return false;
+        }
+
+        // Write all
+        if ( mask == 0 )
+            mask = ~mask;
+
+        // Driver needs to know where the buffer is located
+        if ( fCore.queue.send(writeAddressRegister(1, bufferBase)) == false ) { 
+            fCore.castMessage("Unable to set write start pointer");
+            return false;
+        }
+
+        while ( maskOffs < part->count ) {
+
+            // Not set, loop over and check the next bit
+            if ( ((1 << maskOffs) & mask) == 0 ) {
+                maskOffs++;
+                continue;
+            }
+
+
+            if ( maskOffs > 0 )
+                Start = flashBase + (part->partitions[ maskOffs - 1 ] * chipCount);
+
+            maskOffs++;
+
+            // Traverse the mask and figure out the largest continuous block
+            while ( ((1 << maskOffs) & mask) != 0 && maskOffs < part->count )
+                maskOffs++;
+
+            uint32_t Length = (flashBase + (part->partitions[ maskOffs - 1 ] * chipCount)) - Start;
+            uint32_t bufSize = 0x400;
+            uint32_t runtBytes = 0;
+
+            // Host performs a couple of checks on buffer requests from the adapter so it needs to be aware of what's up
+            memSpec.address = Start;
+            memSpec.size = Length;
+            core.setRange( &memSpec );
+
+
+            // Check for odd lengths etc
+            if ( Length < bufSize )
+                bufSize = Length;
+            else if ( (runtBytes = (Length % bufSize)) != 0)
+                Length -= runtBytes;
+
+            // Some paranoia
+            if ( Length == 0 ) {
+                core.castMessage("Error: write() - Internal coding error");
+                return false;
+            }
+            if ( (Length & 7) != 0 ) {
+                core.castMessage("Error: Can't write in other than multiples of 8 (%u)", Length);
+                return false;
+            }
 
 
 
+            fCore.castMessage("Info: Writing %06x - %06x..", Start, Start + Length - 1);
+
+            // Assist function is VERY stupid on CPU32
+            fCore.queue  = writeAddressRegister(0, Start);
+            fCore.queue += writeDataRegister(1, bufSize / 2);
+            if ( !fCore.queue.send() ) {
+                fCore.castMessage("Error: Unable to update buffer size");
+                return false;
+            }
+
+            if ( !core.queue.send(assistFlash(
+                                    Start, Length,
+                                    driverBase, bufferBase, bufSize)) ) {
+                core.castMessage("Error: Flash failed");
+                return false;
+            }
 
 
+            // Swoop up left-over data and send it to the target
+            if ( runtBytes != 0 ) {
 
+                core.castMessage("Warning: Untested runt feature caught remaining data");
 
+                if ( (runtBytes & 7) != 0 ) {
+                    core.castMessage("Error: Can't write in other than multiples of 8 (%u)", runtBytes);
+                    return false;
+                }
 
+                fCore.castMessage("Info: Writing %06x - %06x..", Start + Length, Start + Length + runtBytes - 1);
+
+                if ( fCore.queue.send(writeDataRegister(1, runtBytes)) == false ) { 
+                    fCore.castMessage("Error: Unable to update buffer size");
+                    return false;
+                }
+
+                if ( !core.queue.send(assistFlash(
+                                        Start + Length, runtBytes,
+                                        driverBase, bufferBase, runtBytes)) ) {
+                    core.castMessage("Error: Flash failed");
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+};
+
+class cpu32_utils
+    : private CPU32_genmd5, private CPU32_genflash {
+
+protected:
+    CPU32_genflash &flash;
+    CPU32_genmd5 &md5;
+
+public:
+    explicit cpu32_utils(bdmstuff &p)
+        : requests(p), requests_cpu32(p),
+            CPU32_genmd5(p), CPU32_genflash(p), flash(*this), md5(*this)
+    {
+        printf("cpu32_utils()\n");
+    }
 };
 
 #endif

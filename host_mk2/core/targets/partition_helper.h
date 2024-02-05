@@ -28,7 +28,6 @@ public:
     parthelper() {}
 
     static const flashpart_t *getMap( uint32_t mid, uint32_t did, eFlashWidth width ) {
-
         const dids_t *dids = nullptr;
         switch ( mid ) {
         case MID_AMD:

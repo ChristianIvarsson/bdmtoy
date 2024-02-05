@@ -6,25 +6,43 @@
 .section .text.entry
 
 # # # # # # # # # # # # # # # # # #
-# Overall
 # Arguments:
+#
+# d7 - Flash type
+#      1 - Oldschool 28f
+#      2 - Toggle flash (29f, 39f etc)
+#      3 - Likely atmel eeprom class chips
+#
 # d0 - mode.
-#     3 - Bulk erase
-#     2 - Selective erase
-#     1 - Write
-#     0 - nop
+#      4 - Init
+#      3 - Bulk erase
+#      2 - Sector erase
+#      1 - Write
+#      0 - nop
+#
+#
+# Init: ( 4 )
+#      d0: Set to 4
+#      a0: Base address of flash
+#      d7: Read above
+#
+# Bulk erase: (3)
+#      a0: Erase from
+#      a1: Erase up to
+#      d7: Read above
+#
+# Sector erase: (2)     (Flash chips that only support bulk will do that instead)
+#      a0: Erase from
+#      a1: Erase up to
+#      d7: Read above
+#
+# Write: (1)
+#      a0: Destination address, will autoincrement
+#      a1: Source buffer address, You only have to set this once
+#      d1: Number of bytes to write. You only have to set this once or when a new length is required
 #
 
-
-#   5        14          26        36
-#   move.b   d0          , d2      /* .. */
-
 flashEntry:
-
-    # Set stack to be 1020 bytes above entry of this code
-    # Do this every time to allow manual running
-    lea.l    flashEntry  , a1
-    lea.l    0x3fc(a1)   , sp
 
     # We want write to be the fastest
     cmpi.b   #1          , opReg
@@ -32,10 +50,10 @@ flashEntry:
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is write
-    movea.l  srcAddr     , srcBck
-    move.l   wrLen       , lenBck
+    movea.l  writeSrc    , wrkSrc
+    move.l   writeLen    , wrkLen
 
-    cmpi.b   #2          , flsTyp
+    cmpi.b   #2          , flashType
     beq.w    toggleWrite
 
 
@@ -49,8 +67,7 @@ notWrite:
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is sector erase
-
-    cmpi.b   #2          , flsTyp
+    cmpi.b   #2          , flashType
     beq.w    toggleSectorErase
 
 
@@ -60,10 +77,24 @@ notSelective:
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is bulk erase
-    cmpi.b   #2          , flsTyp
+    cmpi.b   #2          , flashType
     beq.w    toggleBulkErase
 
 notBulk:
+    cmpi.b   #4          , opReg
+    bne.b    notInit
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Is init
+
+    # Set stack to be 1020 bytes above entry of this code
+    lea.l    flashEntry  , spTemp
+    lea.l    0x3fc(spTemp), sp
+
+    cmpi.b   #2          , flashType
+    beq.w    toggleInit
+
+notInit:
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # No other options, go to fail

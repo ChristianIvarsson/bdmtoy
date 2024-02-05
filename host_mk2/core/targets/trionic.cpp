@@ -202,9 +202,11 @@ protected:
 
 
 
+        // Detect flash type
         uint32_t flashBase = region->address;
 
-        flash.detect( fID, 0x100000, flashBase );
+        if ( !flash.detect( fID, 0x100000, flashBase ) )
+            return false;
 
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
@@ -224,9 +226,10 @@ protected:
         core.castMessage("Info: Comparing md5..");
 
         uint32_t mask = 0;
-        md5.upload( 0x100000, true );
+        if ( !md5.upload( 0x100000, true ) )
+            return false;
 
-        for ( size_t i = 0; i < part->count; i++) {
+        for ( size_t i = 0; i < part->count; i++ ) {
             uint32_t start  = (i == 0) ? 0 : part->partitions[ i - 1 ];
             uint32_t length = part->partitions[ i ] - start;
 
@@ -235,7 +238,8 @@ protected:
             // Flash base does not necessarily sit at 0 so this has to be appended after the local file has been hashed
             start += flashBase;
 
-            md5.hash( &remoteKeys, start, length, true );
+            if ( !md5.hash( &remoteKeys, start, length, true ) )
+                return false;
 
             if ( memcmp( &remoteKeys, &localKeys, sizeof(md5k_t) ) != 0 ) {
                 mask |= ( 1 << i );
@@ -252,7 +256,19 @@ protected:
             return true;
         }
 
-        return false;
+        // Force bulk erase for testing
+        // mask = 0;
+
+        if ( !core.swapBuffer( 4, core.fileSize ) )
+            return false;
+
+        if ( !flash.upload( 0x100400, 0x100000 ) )
+            return false;
+
+        if ( !flash.erase(part, mask, (gen == txTrionic5) ? 2 : 1) )
+            return false;
+
+        return flash.write(part, mask, (gen == txTrionic5) ? 2 : 1);
     }
 
     bool writeSRAM( txFamily gen, const target_t *, const memory_t *region ) {
@@ -404,7 +420,7 @@ public:
 
     bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return writeFlash( txTrionic7, target, region );
+            return writeFlash_mk2( txTrionic7, target, region );
         else if ( region->type == opSRAM )
             return writeSRAM( txTrionic7, target, region );
         return false;
