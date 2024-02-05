@@ -11,10 +11,6 @@
 # d0: Status - You should see 1 for ok. Anything else means unable to identify flash
 # d4: Flash ID           (Ignore upper 16 bits)
 # d5: Extended flash ID  (Ignore upper 16 bits)
-# d6: Size of flash
-# d7: Type of flash
-#                   1 - 28f series flash
-#                   2 - Toggle type. 29, 39 etc
 #
 #
 
@@ -28,37 +24,41 @@ detectEntry:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Check toggle flash
 
-    # Set type to toggle flash
-    moveq.l  #2          , flsTyp
-
 # Virtually all commands happens at these two addresses so let's make them global
     lea.l    0xAAAA(fBase), addrA
     lea.l    0x5554(fBase), addrB
     move.l   addrA       , cmdA
     move.w   #0x5555     , cmdB
 
-# Send ID command
-    lwCMD    0x9090
-    bsr.w    genDelay
-
-# Read ID and EID
     clr.l    flMID
     clr.l    flPID
-    move.w   (fBase)     , flMID
-    move.w   2(fBase)    , flPID
 
-# Send reset command
-# Note: LW flash uses f0 to reset while HW requires two writes of ff
-    lwCMD    0xF0F0
-    moveq.l  #4          , d1
-repDelay:
-    bsr.w    genDelay
-    dbra     d1          , repDelay
+    # Try modern flash first since it's the most likely
+    bsr.b    ngSequence
 
-# Default to 1 meg
-    moveq.l  #0x10       , flLen
-    swap     flLen
+    # Transform and compare MID / DID. Noret if successful
+    bsr.b    checkData
 
+    # Try oldschool method
+    bsr.b    ogSequence
+    bsr.b    checkData
+
+# Failed one way or another
+bdmFail:
+    clr.l    retReg
+    bgnd
+
+bdmOK:
+    moveq.l  #1          , retReg
+    bgnd
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Utils
+
+# # # # # # # # # # # # # # # # # # # # # # #
+# Transform and check IDs
+checkData:
 
 # Figure out if connected to 2x8 or 1x16
 
@@ -68,94 +68,124 @@ repDelay:
 # 16-bit would return     0001 EXID
 
     # Shift down MSB and check if it's the same
-    move.w   flMID       , d1
+    move.w   flMID       , d0
+    lsr.w    #8          , d0
+    cmp.b    d0          , flMID
+    bne.b    _not2x8
+
+    move.w   flPID       , d1
     lsr.w    #8          , d1
-    cmp.b    d1          , flMID
-    beq.b    flash2x8
+    cmp.b    d1          , flPID
+    bne.b    _not2x8
+    move.w   d0          , flMID
+    move.w   d1          , flPID
+_not2x8:
 
-_1x16flash:
+    bsr.b    checkIds
+    beq.b    bdmOK
+    rts
 
-    # Check manufacturer IDs
-    cmpi.w   #1          , flMID
-    bne.b    notAMD16
-
-    # Check AMD 1M parts
-    lea.l    am1Mx16     , a1
-    moveq.l  #am1Mx16ln  , d0
-    bsr.b    checkSixteen
-    beq.w    returnOk
-
-    # Decrease to 512k and go over 512 x 16 parts from AMD
-    lsr.l    #1          , flLen
-    lea.l    am512x16    , a1
-    moveq.l  #am512x16ln , d0
-    bsr.b    checkSixteen
-    beq.w    returnOk
-    # bra.b    returnFail
-
-# Both fail for now
-notAMD16:
-flash2x8:
-    # bra.b    returnFail
-
-# Failed one way or another
-returnFail:
-    clr.l    retReg
-bgnd
-
-returnOk:
-    moveq.l  #1          , retReg
-bgnd
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Utils
-
+# # # # # # # # # # # # # # # # # # # # # # #
+# Generic delay
 genDelay:
     move.w   #0x1800     , d0
 Dloop:
     dbra     d0          , Dloop
 rts
 
-# d0: Count
-# a1: Array
-# d5: pID to compare against
-doCheckSixteen:
-    cmp.w    (a1)+       , flPID
-    beq.b    checkReturnOk
-checkSixteen:
-    dbra     d0          , doCheckSixteen
+# # # # # # # # # # # # # # # # # # # # # # #
+# Query modern flash
+ngSequence:
+
+# Send ID command
+    lwCMD    0x9090
+    bsr.b    genDelay
+
+# Read ID and EID
+    move.w   (fBase)     , flMID
+    move.w   2(fBase)    , flPID
+
+# Send reset command - Use both methods since some ogflash will respond to this request too
+# Note: LW flash uses f0 to reset while HW requires two writes of ff
+    lwCMD    0xF0F0
+    move.w   #0xffff     , (fBase)
+    move.w   #0xffff     , (fBase)
+
+    bra.b    sequenceDelay
+
+# # # # # # # # # # # # # # # # # # # # # # #
+# Query oldschool flash
+ogSequence:
+
+# Send ID command
+    move.w   #0x9090     , (fBase)
+    bsr.b    genDelay
+
+# Read ID and EID
+    move.w   (fBase)     , flMID
+    move.w   2(fBase)    , flPID
+
+# Send reset command
+    move.w   #0xffff     , (fBase)
+    move.w   #0xffff     , (fBase)
+
+sequenceDelay:
+    moveq.l  #4          , d1
+repDelay:
+    bsr.w    genDelay
+    dbra     d1          , repDelay
     rts
 
-# d0: Count
-# a1: Array
-# d5: pID to compare against
-doCheckEight:
-    cmp.b    (a1)+       , flPID
-    beq.b    checkReturnOk
-checkEight:
-    dbra     d0          , doCheckEight
-    rts
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Perform checks
 
-checkReturnOk:
+checkIds:
+
+    lea.l    idList      , a1
     clr.l    d0
+
+nextPart:
+    move.w   (a1)+       , d0      /* Count */
+    beq.b    idFail
+    cmp.w    (a1)+       , flMID   /* Manufacturer */
+    bne.b    skipCollection
+
+    subq.l   #1          , d0
+
+nextId:
+    cmp.w    (a1)+       , flPID   /* Part ID */
+
+    beq.b    idFound
+    dbra     d0          , nextId
+    bra.b    nextPart
+
+skipCollection:
+    lsl.l    #1          , d0      /* From count to size */
+    adda.l   d0          , a1
+    bra.b    nextPart
+
+idFail:
+    moveq.l  #1          , d0
+    rts
+idFound:
+    moveq.l  #0          , d0
     rts
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# ID list - AMD
+# ID list
 
-# 1M x 16 bits
-am1Mx16:
-.word 0x2258        /* AM28F800BB */
-.word 0x22D6        /* AM28F800BT */
-.equ  am1Mx16ln, ((. - am1Mx16) / 2)
+idList:
+.word   amdLen               /* Count */
+.word   0x0001               /* Manufacturer */
+amdList:
+.word   0x2258               /* AM29F800BB   1024K  16-bit  Toggle  */
+.word   0x22D6               /* AM29F800BT   1024K  16-bit  Toggle  */
+.word   0x22AB               /* AM29F400BB   512k   16-bit  Toggle  */
+.word   0x2223               /* AM29F400BT   512k   16-bit  Toggle  */
+.word   0x00A7               /* AM28F010     128k    8-bit  OgStyle */
+.equ  amdLen, ((. - amdList) / 2)
 
-# 512k x 16 bits
-am512x16:
-.word 0x22AB        /* AM28F400BB */
-.word 0x2223        /* AM28F400BT */
-.equ  am512x16ln, ((. - am512x16) / 2)
-
-.align 2
+# Signal end of list
+.word   0x0000               /* Count */

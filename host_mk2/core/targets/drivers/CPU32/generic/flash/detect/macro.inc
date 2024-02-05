@@ -11,8 +11,6 @@
 
 .set flMID  , d4
 .set flPID  , d5
-.set flLen  , d6
-.set flsTyp , d7
 
 # Flash command offsets
 .set addrA, a4

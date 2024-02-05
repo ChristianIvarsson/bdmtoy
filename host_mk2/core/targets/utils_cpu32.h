@@ -96,18 +96,18 @@ public:
 
 class CPU32_genflash : public virtual requests_cpu32 {
         bdmstuff &fCore;
-        uint32_t driverBase;
-        uint32_t flashType;
-        uint32_t flashSize;
-        uint32_t flashBase;
-        uint32_t bufferBase;
+        uint32_t  driverBase;
+        uint32_t  flashBase;
+        uint32_t  bufferBase;
+        uint32_t  chipCount;
+        const flashpart_t *flashPart;
         bool flashKnown;
         bool driverInited;
 
     void clearFlashParams() {
-        flashType = 0;
-        flashSize = 0;
         flashKnown = false;
+        flashPart = nullptr;
+        chipCount = 1;
     }
 
     bool doBulkErase(uint32_t start, uint32_t end) {
@@ -172,6 +172,24 @@ class CPU32_genflash : public virtual requests_cpu32 {
         return getStatus("erase");
     }
 
+    bool getStatus(const char *who) {
+        uint16_t flTemp[2];
+        uint32_t status;
+        if ( fCore.queue.send( readDataRegister(0) ) == false ||
+             fCore.getData(flTemp, TAP_DO_READREGISTER, 4, 0) == false ){ // Status
+            fCore.castMessage("Error: Unable to retrieve %s status", who);
+            return false;
+        }
+
+        status = *(uint32_t *)flTemp;
+
+        if ( status != 1 ) {
+            fCore.castMessage("Error: %s flagged a fault", who);
+            return false;
+        }
+        return true;
+    }
+
 public:
     explicit CPU32_genflash(bdmstuff &p)
         : requests(p), requests_cpu32(p), fCore(p) {
@@ -184,13 +202,12 @@ public:
 
     // Upload flash detection driver and detect flash
     bool detect(flashid_t &id, uint32_t destination, uint32_t flshbase = 0) {
-        uint16_t idTemp[8];
+        uint16_t idTemp[4];
         uint16_t status;
         bool retVal;
 
         clearFlashParams();
         driverInited = false;
-
         flashBase = flshbase;
 
         // Upload driver
@@ -226,41 +243,20 @@ public:
 
         fCore.queue  = readDataRegister(4); // MID
         fCore.queue += readDataRegister(5); // DID / PID
-        fCore.queue += readDataRegister(6); // Size
-        fCore.queue += readDataRegister(7); // Type
 
         if ( fCore.queue.send() == false ||
              fCore.getData(&idTemp[0], TAP_DO_READREGISTER, 4, 0) == false || // MID
-             fCore.getData(&idTemp[2], TAP_DO_READREGISTER, 4, 1) == false || // DID / PID
-             fCore.getData(&idTemp[4], TAP_DO_READREGISTER, 4, 2) == false || // Size
-             fCore.getData(&idTemp[6], TAP_DO_READREGISTER, 4, 3) == false ){ // Type
+             fCore.getData(&idTemp[2], TAP_DO_READREGISTER, 4, 1) == false ){ // DID / PID
             fCore.castMessage("Error: Unable to retrieve flash information");
             return false;
         }
 
-        flashSize = *(uint32_t *)&idTemp[4];
-        flashType = *(uint32_t *)&idTemp[6];
-
         fCore.castMessage("Info: MID    %04X", idTemp[0]);
         fCore.castMessage("Info: DID    %04X", idTemp[2]);
         fCore.castMessage("Info: base %06x", flshbase);
-        fCore.castMessage("Info: size %06X", flashSize);
 
-        if ( flashSize == 0 ) {
-            fCore.castMessage("Error: Driver does not understand this flash");
-            clearFlashParams();
+        if ( !getStatus("detect") ) 
             return false;
-        }
-
-        switch ( flashType ) {
-        case 1: fCore.castMessage("Info: Old H/W flash"); break;
-        case 2: fCore.castMessage("Info: Modern toggle flash"); break;
-        case 3: fCore.castMessage("Info: Atmel eeprom flash type 1"); break;
-        default:
-            fCore.castMessage("Error: Driver does not understand this flash");
-            clearFlashParams();
-            return false;
-        }
 
         id.MID = idTemp[0];
         id.DID = idTemp[2];
@@ -270,26 +266,8 @@ public:
         return true;
     }
 
-    bool getStatus(const char *who) {
-        uint16_t flTemp[2];
-        uint32_t status;
-        if ( fCore.queue.send( readDataRegister(0) ) == false ||
-             fCore.getData(flTemp, TAP_DO_READREGISTER, 4, 0) == false ){ // Status
-            fCore.castMessage("Error: Unable to retrieve %s status", who);
-            return false;
-        }
-
-        status = *(uint32_t *)flTemp;
-
-        if ( status != 1 ) {
-            fCore.castMessage("Error: %s flagged a fault", who);
-            return false;
-        }
-        return true;
-    }
-
     // Upload and init flash / erase driver
-    bool upload(uint32_t destination, uint32_t buffer) {
+    bool upload(const flashpart_t *part, uint32_t destination, uint32_t buffer, uint32_t chpCount = 1) {
         
         uint16_t status;
         bool retVal;
@@ -299,9 +277,16 @@ public:
             return false;
         }
 
+        if ( part == nullptr ) {
+            fCore.castMessage("Error: Need flash specifications for this operation");
+            return false;
+        }
+
+        chipCount = chpCount;
         driverBase = destination;
         bufferBase = buffer;
         driverInited = false;
+        flashPart = part;
 
         // Upload driver
         fCore.castMessage("Info: Uploading flash driver..");
@@ -312,7 +297,7 @@ public:
         }
 
         fCore.queue  = writeDataRegister(0, 4);
-        fCore.queue += writeDataRegister(7, flashType);
+        fCore.queue += writeDataRegister(7, part->type);
         fCore.queue += writeAddressRegister(0, flashBase);
         fCore.queue += writeSystemRegister(0, destination);
         fCore.queue += targetStart();
@@ -341,7 +326,7 @@ public:
     }
 
     // Erase flash
-    bool erase(const flashpart_t *part, uint32_t mask, uint32_t chipCount = 1) {
+    bool erase(uint32_t mask) {
 
         uint32_t Start = flashBase;
 
@@ -350,25 +335,25 @@ public:
             return false;
         }
 
-        if ( chipCount > 2 || chipCount == 0 || part == nullptr || part->count == 0 ) {
+        if ( chipCount > 2 || chipCount == 0 || flashPart == nullptr || flashPart->count == 0 ) {
             fCore.castMessage("Error: Need valid partition parameters");
             return false;
         }
 
         // Perform bulk erase
-        if ( mask == 0 || part->count == 1 )
-            return doBulkErase( flashBase, flashBase + (part->partitions[ part->count - 1 ] * chipCount) );
+        if ( mask == 0 || flashPart->count == 1 )
+            return doBulkErase( flashBase, flashBase + (flashPart->partitions[ flashPart->count - 1 ] * chipCount) );
 
         // Sector erase
-        for ( uint32_t i = 0; i < part->count; i++ ) {
+        for ( uint32_t i = 0; i < flashPart->count; i++ ) {
 
             if ( ((1 << i) & mask) != 0 ) {
-                if ( !doSectorErase(Start, flashBase + (part->partitions[ i ] * chipCount)) )
+                if ( !doSectorErase(Start, flashBase + (flashPart->partitions[ i ] * chipCount)) )
                     return false;
             }
 
             // Map stores the last address of every partition + 1
-            Start = flashBase + (part->partitions[ i ] * chipCount);
+            Start = flashBase + (flashPart->partitions[ i ] * chipCount);
         }
 
         return true;
@@ -379,7 +364,7 @@ public:
     // 1 - It won't adjust buffer size according to remaining length so request must be in multiples of that
     // 2 - There must never be less than 8 bytes per write iteration
     // 3 - Everything must be in multiples of 4
-    bool write(const flashpart_t *part, uint32_t mask, uint32_t chipCount = 1) {
+    bool write(uint32_t mask) {
 
         uint32_t Start = flashBase;
         uint32_t maskOffs = 0;
@@ -390,12 +375,12 @@ public:
             return false;
         }
 
-        if ( chipCount > 2 || chipCount == 0 || part == nullptr || part->count == 0 ) {
+        if ( chipCount > 2 || chipCount == 0 || flashPart == nullptr || flashPart->count == 0 ) {
             fCore.castMessage("Error: Need valid partition parameters");
             return false;
         }
 
-        if ( part->count > 32 ) {
+        if ( flashPart->count > 32 ) {
             fCore.castMessage("Error: I don't know what to do with this many partitions!");
             return false;
         }
@@ -410,7 +395,7 @@ public:
             return false;
         }
 
-        while ( maskOffs < part->count ) {
+        while ( maskOffs < flashPart->count ) {
 
             // Not set, loop over and check the next bit
             if ( ((1 << maskOffs) & mask) == 0 ) {
@@ -420,15 +405,15 @@ public:
 
 
             if ( maskOffs > 0 )
-                Start = flashBase + (part->partitions[ maskOffs - 1 ] * chipCount);
+                Start = flashBase + (flashPart->partitions[ maskOffs - 1 ] * chipCount);
 
             maskOffs++;
 
             // Traverse the mask and figure out the largest continuous block
-            while ( ((1 << maskOffs) & mask) != 0 && maskOffs < part->count )
+            while ( ((1 << maskOffs) & mask) != 0 && maskOffs < flashPart->count )
                 maskOffs++;
 
-            uint32_t Length = (flashBase + (part->partitions[ maskOffs - 1 ] * chipCount)) - Start;
+            uint32_t Length = (flashBase + (flashPart->partitions[ maskOffs - 1 ] * chipCount)) - Start;
             uint32_t bufSize = 0x400;
             uint32_t runtBytes = 0;
 

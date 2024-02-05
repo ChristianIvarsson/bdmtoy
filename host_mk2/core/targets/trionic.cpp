@@ -188,6 +188,8 @@ protected:
         flashid_t fID = { 0 };
         parthelper pid;
         crypto::md5 local_md5;
+        uint16_t hwTemp[2];
+        uint32_t chipCount = (gen == txTrionic5) ? 2 : 1;
 
         if ( region == nullptr ) {
             core.castMessage("Error: This routine needs to know base address");
@@ -205,8 +207,26 @@ protected:
         // Detect flash type
         uint32_t flashBase = region->address;
 
-        if ( !flash.detect( fID, 0x100000, flashBase ) )
-            return false;
+        if ( !flash.detect( fID, 0x100000, flashBase ) ) {
+            // Trionic 5 with original flash needs H/V
+            if ( gen != txTrionic5 )
+                return false;
+
+            core.castMessage("Info: This is trionic 5. Testing H/V..");
+
+            core.queue  = writeMemory( 0xFFFC14, 0x0040, sizeWord );
+            core.queue += readMemory( 0xFFFC16, sizeWord  );
+
+            if ( !core.queue.send() ||
+                 !core.getData(hwTemp, TAP_DO_READMEMORY, 2, 0) ||
+                 !core.queue.send( writeMemory( 0xFFFC16, hwTemp[0] | 0x0040, sizeWord )) ) {
+                core.castMessage("Error: Unable to enable H/V");
+                return false;
+            }
+
+            if ( !flash.detect( fID, 0x100000, flashBase ) )
+                return false;
+        }
 
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
@@ -230,8 +250,8 @@ protected:
             return false;
 
         for ( size_t i = 0; i < part->count; i++ ) {
-            uint32_t start  = (i == 0) ? 0 : part->partitions[ i - 1 ];
-            uint32_t length = part->partitions[ i ] - start;
+            uint32_t start  = (i == 0) ? 0 : (part->partitions[ i - 1 ] * chipCount);
+            uint32_t length = (part->partitions[ i ] * chipCount) - start;
 
             local_md5.hash( &localKeys, &core.buffer[ start ], length );
 
@@ -262,13 +282,13 @@ protected:
         if ( !core.swapBuffer( 4, core.fileSize ) )
             return false;
 
-        if ( !flash.upload( 0x100400, 0x100000 ) )
+        if ( !flash.upload(part, 0x100400, 0x100000, chipCount) )
             return false;
 
-        if ( !flash.erase(part, mask, (gen == txTrionic5) ? 2 : 1) )
+        if ( !flash.erase(mask) )
             return false;
 
-        return flash.write(part, mask, (gen == txTrionic5) ? 2 : 1);
+        return flash.write(mask);
     }
 
     bool writeSRAM( txFamily gen, const target_t *, const memory_t *region ) {
@@ -391,7 +411,7 @@ public:
         core.queue += readMemory( 0x100000, sizeWord  ); // TPURAM
         core.queue += readMemory( 0x200000, sizeWord  ); // SRAM
         if ( core.queue.send() == false ) {
-            core.castMessage("Info: trionic_5::init - Unable to perform read check on memory regions");
+            core.castMessage("Error: trionic_5::init - Unable to perform read check on memory regions");
             return false;
         }
 
@@ -401,7 +421,7 @@ public:
             for ( uint32_t i = 0; i < 4; i++ )
                 core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
         } else {
-            core.castMessage("Info: trionic_7::init - Unable to retrieve read checks from memory regions");
+            core.castMessage("Error: trionic_5::init - Unable to retrieve read checks from memory regions");
             return false;
         }
 
@@ -483,7 +503,7 @@ public:
         core.queue += readMemory( 0x100000, sizeWord  ); // TPURAM
         core.queue += readMemory( 0x200000, sizeWord  ); // SRAM
         if ( core.queue.send() == false ) {
-            core.castMessage("Info: trionic_7::init - Unable to perform read check on memory regions");
+            core.castMessage("Error: trionic_7::init - Unable to perform read check on memory regions");
             return false;
         }
 
@@ -493,7 +513,7 @@ public:
             for ( uint32_t i = 0; i < 4; i++ )
                 core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
         } else {
-            core.castMessage("Info: trionic_7::init - Unable to retrieve read checks from memory regions");
+            core.castMessage("Error: trionic_7::init - Unable to retrieve read checks from memory regions");
             return false;
         }
 

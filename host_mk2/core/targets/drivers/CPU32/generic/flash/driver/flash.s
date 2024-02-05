@@ -40,71 +40,102 @@
 #      a0: Destination address, will autoincrement
 #      a1: Source buffer address, You only have to set this once
 #      d1: Number of bytes to write. You only have to set this once or when a new length is required
+#      d7: Read above
 #
 
 flashEntry:
 
     # We want write to be the fastest
     cmpi.b   #1          , opReg
-    bne.b    notWrite
+    bne.b    checkSectErase
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is write
     movea.l  writeSrc    , wrkSrc
     move.l   writeLen    , wrkLen
 
-    cmpi.b   #2          , flashType
-    beq.w    toggleWrite
+doWrite:
+    bra.w    bdmFail
 
-
-notWrite:
+checkSectErase:
 
     # Preload register for ff compare
     moveq.l  #-1         , ffReg
 
     cmpi.b   #2          , opReg
-    bne.b    notSelective
+    bne.b    checkBulkErase
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is sector erase
-    cmpi.b   #2          , flashType
-    beq.w    toggleSectorErase
+doSector:
+    bra.w    bdmFail
 
-
-notSelective:
+checkBulkErase:
     cmpi.b   #3          , opReg
-    bne.b    notBulk
+    bne.b    checkInit
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is bulk erase
-    cmpi.b   #2          , flashType
-    beq.w    toggleBulkErase
+doBulk:
+    bra.w    bdmFail
 
-notBulk:
+checkInit:
     cmpi.b   #4          , opReg
-    bne.b    notInit
+    bne.b    bdmFail
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Is init
 
     # Set stack to be 1020 bytes above entry of this code
-    lea.l    flashEntry  , spTemp
-    lea.l    0x3fc(spTemp), sp
+    lea.l    flashEntry  , a1
+    lea.l    0x3fc(a1)   , sp
 
+# OG flash
+    cmpi.b   #1          , flashType
+    bne.b    checkToggle
+    lea.l    ogOffsets   , a3
+    bsr.b    installJump
+    bra.b    bdmOK
+
+# Toggle flash
+checkToggle:
     cmpi.b   #2          , flashType
-    beq.w    toggleInit
+    bne.b    bdmFail
 
-notInit:
+    lea.l    toggleOffs  , a3
+    bsr.b    installJump
+    bra.w    toggleInit
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# No other options, go to fail
+
+
+
+
+
 
 # Failed one way or another
-returnFail:
+bdmFail:
     clr.l    retReg
-bgnd
+    bgnd
 
-returnOk:
+bdmOK:
     moveq.l  #1          , retReg
-bgnd
+    bgnd
 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Install pointers
+installJump:
+    lea.l    flashEntry  , a1
+    lea.l    mainOffs    , a2
+
+    moveq.l  #2          , d0
+ptrLoop:
+    move.w   (a2)+       , d2
+    move.w   (a3)+       , (d2.w, a1)
+    dbra     d0          , ptrLoop
+    rts
+
+# write, sector erase, bulk erase
+mainOffs:   .word doWrite+2              , doSector+2                    , doBulk+2
+ogOffsets:  .word (ogWrite-doWrite)-2    , (ogErase-doSector)-2          , (ogErase-doBulk)-2
+toggleOffs: .word (toggleWrite-doWrite)-2, (toggleSectorErase-doSector)-2, (toggleBulkErase-doBulk)-2

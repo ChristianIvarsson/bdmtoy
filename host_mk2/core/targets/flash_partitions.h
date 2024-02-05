@@ -1,8 +1,15 @@
 #ifndef __FLASH_PARTITIONS_H__
 #define __FLASH_PARTITIONS_H__
 
+enum flashType : uint32_t {
+    enUnkFlash     = 0,
+    enOgFlash      = 1,
+    enToggleFlash  = 2
+};
+
 typedef struct {
     const uint32_t        did;
+    const flashType       type;
     const uint32_t        count;
     const uint32_t *const partitions;
 } flashpart_t;
@@ -17,6 +24,21 @@ typedef struct {
     const dids_t x16parts;
     const dids_t x32parts;
 } didcollection_t;
+
+#define partMacro(prt) \
+    sizeof(prt) / sizeof((prt)[0]), (prt)
+
+#define colMacro(col) \
+    (col), sizeof(col) / sizeof((col)[0])
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Several
+
+// 128k / 8
+static const uint32_t xx28f010[] = {
+    0x20000, // End of Sector  0 + 1
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,13 +59,17 @@ static const uint32_t am29f400bt[] = {
     0x80000, // End of Sector 10 + 1
 };
 
+static const flashpart_t amd_x8[] = {
+    { 0x000000A7, enOgFlash          , partMacro(xx28f010) },
+};
+
 static const flashpart_t amd_x16[] = {
-    { 0x00002223, sizeof(am29f400bt) / sizeof(am29f400bt[0])                   , am29f400bt           },
+    { 0x00002223, enToggleFlash      , partMacro(am29f400bt) },
 };
 
 static const didcollection_t amd_dids = {
-    { nullptr },
-    { amd_x16        , sizeof(amd_x16) / sizeof(amd_x16[0]) },
+    { colMacro(amd_x8)  },
+    { colMacro(amd_x16) },
     { nullptr }
 };
 
