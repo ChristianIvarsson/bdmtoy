@@ -41,21 +41,21 @@ build/main.o:   main.cpp
 
 
 
-build/bdmstuff.o:   ../../core/bdmstuff.cpp
+build/bdmstuff.o:   ../../../core/bdmstuff.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
-build/bdmworker.o:   ../../core/bdmworker.cpp
+build/bdmworker.o:   ../../../core/bdmworker.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
-build/usb.o:   ../../core/usb/usb.cpp
+build/usb.o:   ../../../core/usb/usb.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
 
 
-build/trionic.o:   ../../core/targets/trionic.cpp
+build/trionic.o:   ../../../core/targets/trionic.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
-build/target_helper.o:   ../../core/targets/target_helper.cpp
+build/target_helper.o:   ../../../core/targets/target_helper.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
 

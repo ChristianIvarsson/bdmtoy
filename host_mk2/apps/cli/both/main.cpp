@@ -4,8 +4,8 @@
 #include <cstdarg>
 #include <cstdlib>
 
-#include "../../core/bdmstuff.h"
-#include "../../core/targets/target_helper.h"
+#include "../../../core/bdmstuff.h"
+#include "../../../core/targets/target_helper.h"
 
 #include "tools.h"
 
