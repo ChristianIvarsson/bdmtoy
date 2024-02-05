@@ -1,0 +1,7 @@
+
+# Ignore built blobs and other utils in driver subdirs
+*.bin
+*.hex
+*.elf
+
+*.exe

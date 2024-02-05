@@ -1,7 +1,7 @@
 
 # Editor settings etc
-.*
-!.gitkeep
+.private
+.vscode
 
 # Build artefacts
 *.o
@@ -12,9 +12,6 @@
 *.pro.user
 *.pro.user*
 
-
-# Doing by file type would exclude too much
-bin2header.exe
 
 /host/cli/both/*.bin
 /host/cli/both/*.exe
