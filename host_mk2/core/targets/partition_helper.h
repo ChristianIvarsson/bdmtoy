@@ -24,8 +24,6 @@ public:
     parthelper() {}
 
 /*
-#define MID_FUJITSU    ( 0x0004 )
-#define MID_MXIC       ( 0x00C2 )
 #define MID_WINBOND    ( 0x00DA )
 */
 
@@ -33,11 +31,13 @@ public:
         const dids_t *dids = nullptr;
         switch ( mid ) {
         case MID_AMD:      dids = ofWidth( amd_dids     , width ); break; /* 0001 */
+        case MID_FUJITSU:  dids = ofWidth( fujitsu_dids , width ); break; /* 0004 */
         case MID_EON:      dids = ofWidth( eon_dids     , width ); break; /* 001C */
         case MID_ST:       dids = ofWidth( st_dids      , width ); break; /* 0020 */
         case MID_CATALYST: dids = ofWidth( catalyst_dids, width ); break; /* 0031 */
         case MID_AMIC:     dids = ofWidth( amic_dids    , width ); break; /* 0037 */
         case MID_INTEL:    dids = ofWidth( intel_dids   , width ); break; /* 0089 */
+        case MID_MXIC:     dids = ofWidth( mxic_dids    , width ); break; /* 00C2 */
         default:
             break;
         }

@@ -13,9 +13,10 @@
 #define MID_WINBOND    ( 0x00DA )
 
 enum flashType : uint32_t {
-    enUnkFlash     = 0,
-    enOgFlash      = 1,
-    enToggleFlash  = 2
+    enUnkFlash     =  0,
+    enOgFlash      =  1,  // Regular 28f series. Later ones use a modified command set
+    enToggleFlash  =  2,  // Most 29 and 39 series
+    enOgFlashTyp2  = 11,  // For now. There's no support in the driver
 };
 
 typedef struct {
@@ -42,6 +43,7 @@ typedef struct {
 #define colMacro(col) \
     (col), sizeof(col) / sizeof((col)[0])
 
+#include "maps_28.h"
 #include "maps_29.h"
 #include "maps_generic.h"
 
@@ -55,6 +57,8 @@ static const flashpart_t amd_x8[] = {
     { 0x0000002A, enOgFlash          , partMacro(one256k)       }, // AM28F020
 
     { 0x00000020, enToggleFlash      , partMacro(eight16k)      }, // AM29F010
+    { 0x000000B0, enToggleFlash      , partMacro(X002t)         }, // AM29F002T
+    { 0x00000034, enToggleFlash      , partMacro(X002b)         }, // AM29F002B
 };
 
 static const flashpart_t amd_x16[] = {
@@ -78,6 +82,8 @@ static const didcollection_t amd_dids = {
 static const flashpart_t amic_x8[] = {
     { 0x000000A1, enToggleFlash      , partMacro(two32k)        }, // A29512
     { 0x000000A4, enToggleFlash      , partMacro(four32k)       }, // A29010
+    { 0x0000008C, enToggleFlash      , partMacro(X002t)         }, // A29002T
+    { 0x0000000D, enToggleFlash      , partMacro(X002b)         }, // A29002B
 };
 
 static const didcollection_t amic_dids = {
@@ -110,6 +116,8 @@ static const flashpart_t eon_x8[] = {
     { 0x00000021, enToggleFlash      , partMacro(four16k)       }, // EN29F512
     { 0x00000020, enToggleFlash      , partMacro(eight16k)      }, // EN29F010
     { 0x0000006E, enToggleFlash      , partMacro(eight16k)      }, // EN29LV010
+    { 0x00000092, enToggleFlash      , partMacro(X002t)         }, // EN29F002T
+    { 0x00000097, enToggleFlash      , partMacro(X002b)         }, // EN29F002B
 };
 
 static const didcollection_t eon_dids = {
@@ -120,16 +128,48 @@ static const didcollection_t eon_dids = {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Fujitsu                   ( 0004 )
+
+static const flashpart_t fujitsu_x8[] = {
+    { 0x000000B0, enToggleFlash      , partMacro(X002t)         }, // MBM29F002T
+    { 0x00000034, enToggleFlash      , partMacro(X002b)         }, // MBM29F002B
+};
+
+static const didcollection_t fujitsu_dids = {
+    { colMacro(fujitsu_x8)  },
+    { nullptr },
+    { nullptr }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Intel / TI                ( 0089 )
 
 static const flashpart_t intel_x8[] = {
-    { 0x000000B8, enOgFlash          , partMacro(one64k)  }, // 28F512
-    { 0x000000B4, enOgFlash          , partMacro(one128k) }, // 28F010
-    { 0x000000BD, enOgFlash          , partMacro(one256k) }, // 28F020
+    { 0x000000B8, enOgFlash          , partMacro(one64k)      }, // 28F512
+    { 0x000000B4, enOgFlash          , partMacro(one128k)     }, // 28F010
+    { 0x000000BD, enOgFlash          , partMacro(one256k)     }, // 28F020
+    { 0x0000007C, enOgFlashTyp2      , partMacro(intl28f002t) }, // 28F002T
+    { 0x0000007D, enOgFlashTyp2      , partMacro(intl28f002b) }, // 28F002B
 };
 
 static const didcollection_t intel_dids = {
     { colMacro(intel_x8)  },
+    { nullptr },
+    { nullptr }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MXIC                      ( 00C2 )
+
+static const flashpart_t mxic_x8[] = {
+    { 0x000000B0, enToggleFlash      , partMacro(X002t)         }, // MX29F002T
+    { 0x00000034, enToggleFlash      , partMacro(X002b)         }, // MX29F002B
+};
+
+static const didcollection_t mxic_dids = {
+    { colMacro(mxic_x8)  },
     { nullptr },
     { nullptr }
 };
@@ -141,6 +181,8 @@ static const didcollection_t intel_dids = {
 static const flashpart_t st_x8[] = {
     { 0x00000024, enToggleFlash      , partMacro(one64k)        }, // M29F512
     { 0x00000020, enToggleFlash      , partMacro(eight16k)      }, // M29F010
+    { 0x000000B0, enToggleFlash      , partMacro(X002t)         }, // M29F002BT/BNT
+    { 0x00000034, enToggleFlash      , partMacro(X002b)         }, // M29F002BB
 };
 
 static const didcollection_t st_dids = {
