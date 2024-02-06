@@ -1,0 +1,42 @@
+Todo list of sorts
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# 28 series chips
+
+MAN       ID             MID   DID       SIZE x W      SECT        TYPE
+# Only abailable in DIP and TSOP so ignored for now
+INTEL     28F002T        0089  007C      256k x 8      CUST TOP    Oldschool
+INTEL     28F002B        0089  007D      256k x 8      CUST BOT    Oldschool
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# 29 series chips
+
+MAN       ID             MID   DID       SIZE x W      SECT        TYPE
+AMD       AM29F002T      0001  00B0      256k x 8      CUST TOP    toggle
+AMD       AM29F002B      0001  0034      256k x 8      CUST BOT    toggle
+
+AMIC      A29002         0037  008C      256k x 8      CUST TOP    toggle
+AMIC      A29002         0037  000D      256k x 8      CUST BOT    toggle
+
+EON       EN29F002       001C  0092      256k x 8      CUST TOP    toogle
+EON       EN29F002       001C  0097      256k x 8      CUST BOT    toogle
+
+FUJITSU   MBM29F002T     0004  00B0      256k x 8      CUST TOP    toggle
+FUJITSU   MBM29F002B     0004  0034      256k x 8      CUST BOT    toggle
+
+MXIC      MX29F002T      00C2  00B0      256k x 8      CUST TOP    toggle
+MXIC      MX29F002B      00C2  0034      256k x 8      CUST BOT    toggle
+
+ST        M29F002BT      0020  00B0      256k x 8      CUST TOP    toggle
+ST        M29F002BB      0020  0034      256k x 8      CUST BOT    toggle
+
+
+
+WINBOND   W29C020        00DA  0045      256k x 8      C U S T     paged toggle (128 byte/p)
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# 39 series chips
+
+MAN       ID             MID   DID       SIZE x W      SECT        TYPE
