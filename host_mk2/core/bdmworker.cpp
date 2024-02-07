@@ -585,6 +585,9 @@ bool bdmworker::getData( uint16_t *buf, Master_Commands toCmd, uint32_t size, ui
     uint16_t *ptr     = rxQueue.buffer;
     uint32_t  seenCmd = 0;
 
+    // Round up towards nearest word
+    size = (size + 1) & ~1;
+
     for (uint32_t i = 0; i < rxQueue.nStoredCommands; i++) {
 
         // Payload [ [cmd], [cmd len], [data (if present)] ] .. next
