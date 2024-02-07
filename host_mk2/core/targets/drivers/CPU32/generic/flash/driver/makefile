@@ -14,12 +14,15 @@ all : $(NAME)
 OBJS=\
 	out/flash.o \
 	out/flash_toggle.o \
+	out/flash_paged.o \
 	out/flash_og.o
 
 out/flash.o: flash.s
 	@$(AS) $(ASFLAGS)  $< -o $@
 
 out/flash_toggle.o: flash_toggle.s
+	@$(AS) $(ASFLAGS)  $< -o $@
+out/flash_paged.o: flash_paged.s
 	@$(AS) $(ASFLAGS)  $< -o $@
 out/flash_og.o: flash_og.s
 	@$(AS) $(ASFLAGS)  $< -o $@

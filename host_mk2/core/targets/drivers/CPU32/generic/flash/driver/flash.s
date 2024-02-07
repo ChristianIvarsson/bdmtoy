@@ -100,11 +100,28 @@ checkInit:
 # Toggle flash
 checkToggle:
     cmpi.b   #2          , flashType
-    bne.b    bdmFail
+    bne.b    checkPaged128
 
     lea.l    toggleOffs  , a3
+    bra.b    prepLv
+
+# Paged flash. AT29C, W29C etc. 128-byte pages
+checkPaged128:
+    cmpi.b   #3          , flashType
+    bne.b    checkPaged256
+
+    lea.l    paged128    , a3
+    bra.b    prepLv
+
+# Paged flash. AT29C, W29C etc. 256-byte pages
+checkPaged256:
+    cmpi.b   #4          , flashType
+    bne.b    bdmFail
+
+    lea.l    paged256    , a3
+prepLv:
     bsr.b    installJump
-    bra.w    toggleInit
+    bra.b    lvInit
 
 
 
@@ -117,11 +134,16 @@ bdmFail:
     clr.l    retReg
     bgnd
 
+# Common among low voltage chips
+lvInit:
+    lea.l    0xAAAA(baseAddr), addrA
+    lea.l    0x5554(baseAddr), addrB
+    move.l   addrA       , cmdA
+    move.w   #0x5555     , cmdB
+
 bdmOK:
     moveq.l  #1          , retReg
     bgnd
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Install pointers
 installJump:
@@ -135,7 +157,9 @@ ptrLoop:
     dbra     d0          , ptrLoop
     rts
 
-# write, sector erase, bulk erase
-mainOffs:   .word doWrite+2              , doSector+2                    , doBulk+2
-ogOffsets:  .word (ogWrite-doWrite)-2    , (ogErase-doSector)-2          , (ogErase-doBulk)-2
-toggleOffs: .word (toggleWrite-doWrite)-2, (toggleSectorErase-doSector)-2, (toggleBulkErase-doBulk)-2
+#                 write                    , sector erase                  , bulk erase
+mainOffs:   .word doWrite+2                , doSector+2                    , doBulk+2
+ogOffsets:  .word (ogWrite-doWrite)-2      , (ogErase-doSector)-2          , (ogErase-doBulk)-2
+toggleOffs: .word (toggleWrite-doWrite)-2  , (toggleSectorErase-doSector)-2, (toggleBulkErase-doBulk)-2
+paged128:   .word (pagedWrite128-doWrite)-2, (pagedErase-doSector)-2       , (pagedErase-doBulk)-2
+paged256:   .word (pagedWrite256-doWrite)-2, (pagedErase-doSector)-2       , (pagedErase-doBulk)-2

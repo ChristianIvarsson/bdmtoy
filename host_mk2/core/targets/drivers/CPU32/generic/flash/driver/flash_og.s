@@ -44,7 +44,7 @@ decDataCounter:
     subq.w   #1          , wrkLen
     bne.b    ogWrite
 
-    # CAT28f plays the b*tch-game. Make sure it is in read mode..
+    # Workaround for CAT28 errata
     clr.w    (writeDst)
     bgnd
 

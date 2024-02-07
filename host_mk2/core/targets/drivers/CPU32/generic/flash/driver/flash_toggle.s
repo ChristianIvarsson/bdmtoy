@@ -5,23 +5,6 @@
 
 .include "macro.inc"
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Specific to LW flash
-
-# Flash command offsets
-.set addrA    , a3
-.set addrB    , a4
-
-# Prestored commands
-.set cmdA     , d5
-.set cmdB     , d6
-
-# Regular command macro
-.macro lwCMD  _CMD
-    move.w   cmdA        , (addrA) /* Send 0xAAAA  to address 0xAAAA(base) */
-    move.w   cmdB        , (addrB) /* Send 0x5555  to address 0x5554(base) */
-    move.w   #\_CMD      , (addrA) /* Send command to address 0xAAAA(base) */
-.endm
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # a0 - Start from
@@ -94,10 +77,3 @@ writeWait:
     cmp.w    (writeDst)  , tmpRegA
     bne.b    writeWait
     bra.b    toggleWrite
-
-toggleInit:
-    lea.l    0xAAAA(baseAddr), addrA
-    lea.l    0x5554(baseAddr), addrB
-    move.l   addrA       , cmdA
-    move.w   #0x5555     , cmdB
-    bra.b    toggleOk

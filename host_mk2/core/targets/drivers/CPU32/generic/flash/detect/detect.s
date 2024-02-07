@@ -60,6 +60,9 @@ bdmOK:
 # Transform and check IDs
 checkData:
 
+    bsr.b    checkIds
+    beq.b    bdmOK
+
 # Figure out if connected to 2x8 or 1x16
 
 # With AMD as an example:
@@ -177,15 +180,28 @@ idFound:
 # ID list
 
 idList:
+# # # # # # # # # # # # # # # # #
+# AMD
 .word   amdLen               /* Count */
 .word   0x0001               /* Manufacturer */
 amdList:
-.word   0x2258               /* AM29F800BB   1024K  16-bit  Toggle  */
-.word   0x22D6               /* AM29F800BT   1024K  16-bit  Toggle  */
-.word   0x22AB               /* AM29F400BB   512k   16-bit  Toggle  */
-.word   0x2223               /* AM29F400BT   512k   16-bit  Toggle  */
-.word   0x00A7               /* AM28F010     128k    8-bit  OgStyle */
+.word   0x2258               /* AM29F800BB   1024K  16-bit  Toggle   */
+.word   0x22D6               /* AM29F800BT   1024K  16-bit  Toggle   */
+.word   0x22AB               /* AM29F400BB   512k   16-bit  Toggle   */
+.word   0x2223               /* AM29F400BT   512k   16-bit  Toggle   */
+.word   0x00A7               /* AM28F010     128k    8-bit  OgStyle  */
 .equ  amdLen, ((. - amdList) / 2)
 
+# # # # # # # # # # # # # # # # #
+# Atmel
+.word   atmelLen             /* Count */
+.word   0x001F               /* Manufacturer */
+atmelList:
+.word   0x005D               /* AT29C512    64K  8-bit  Paged        */
+.word   0x00D5               /* AT29C010   128K  8-bit  Paged        */
+.word   0x00DA               /* AT29C020   256k  8-bit  Paged        */
+.equ  atmelLen, ((. - atmelList) / 2)
+
+# # # # # # # # # # # # # # # # #
 # Signal end of list
 .word   0x0000               /* Count */

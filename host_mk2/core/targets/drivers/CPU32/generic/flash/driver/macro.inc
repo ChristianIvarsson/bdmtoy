@@ -24,3 +24,23 @@
 # Junk
 .set tmpRegA  , d3
 .set ffReg    , d4  /* Automatically set to ffff before erase */
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Specific to toggle and paged flash
+
+# Flash command offsets
+.set addrA    , a3
+.set addrB    , a4
+
+# Prestored commands
+.set cmdA     , d5
+.set cmdB     , d6
+
+# Regular command macro
+.macro lwCMD  _CMD
+    move.w   cmdA        , (addrA) /* Send 0xAAAA  to address 0xAAAA(base) */
+    move.w   cmdB        , (addrB) /* Send 0x5555  to address 0x5554(base) */
+    move.w   #\_CMD      , (addrA) /* Send command to address 0xAAAA(base) */
+.endm
