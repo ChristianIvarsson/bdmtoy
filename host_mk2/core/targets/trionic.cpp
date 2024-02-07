@@ -257,13 +257,13 @@ protected:
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
 
-        if ( part == nullptr || part->partitions == nullptr ) {
+        if ( part == nullptr ) {
             core.castMessage("Error: Host does not understand this flash");
             return false;
         }
 
-        if ( part->count > 32 || part->count == 0 ) {
-            core.castMessage("Error: Partition count out of bounds");
+        if ( part->count > 32 ) {
+            core.castMessage("Error: Too many partitions");
             return false;
         }
 

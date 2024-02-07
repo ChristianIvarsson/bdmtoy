@@ -47,7 +47,9 @@ public:
             return nullptr;
 
         for ( uint32_t i = 0; i < dids->count; i++ ) {
-            if ( dids->parts[ i ].did == did )
+            if ( dids->parts[ i ].did == did &&
+                 dids->parts[ i ].count > 0 &&
+                 dids->parts[ i ].partitions != nullptr )
                 return &dids->parts[ i ];
         }
 
