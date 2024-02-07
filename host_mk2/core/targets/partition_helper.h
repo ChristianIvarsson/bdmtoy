@@ -53,6 +53,21 @@ public:
 
         return nullptr;
     }
+
+    static const char *const getManufacturerName( uint32_t mid ) {
+        switch ( mid ) {
+        case MID_AMD:      return "AMD";                        /* 0001 */
+        case MID_FUJITSU:  return "Fujitsu";                    /* 0004 */
+        case MID_EON:      return "EON";                        /* 001C */
+        case MID_ATMEL:    return "Atmel";                      /* 001F */
+        case MID_ST:       return "ST";                         /* 0020 */
+        case MID_CATALYST: return "Catalyst / CSI";             /* 0031 */
+        case MID_AMIC:     return "AMIC";                       /* 0037 */
+        case MID_INTEL:    return "Intel or Texas Instruments"; /* 0089 */
+        case MID_MXIC:     return "MXIC";                       /* 00C2 */
+        default: return "Unknown";
+        }
+    }
 };
 
 #endif

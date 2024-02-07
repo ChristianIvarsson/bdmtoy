@@ -190,6 +190,327 @@ class CPU32_genflash : public virtual requests_cpu32 {
         return true;
     }
 
+    // 8-bit
+    // AA to 5555(base)
+    // 55 to 2AAA(base)
+    // 90 to 5555(base)
+
+    // 2 x 8-bit
+    // AAAA to AAAA(base)
+    // 5555 to 5554(base)
+    // 9090 to AAAA(base)
+
+    // 16-bit
+    // 00AA to AAAA(base)
+    // 0055 to 5554(base)
+    // 0090 to AAAA(base)
+    bool sendOldcshool(uint32_t *id, uint32_t flshbase, eFlashWidth width, uint32_t chipCount) {
+        uint32_t skipCount = 1;
+
+        fCore.castMessage("Info: Detecting with oldschool commands..");
+
+        switch ( width ) {
+        case enWidth8: break;
+        case enWidth16:
+            skipCount = 2;
+            break;
+        case enWidth32:
+            skipCount = 4;
+            break;
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this width");
+            return false;
+        }
+
+        switch ( chipCount ) {
+        case 1: break;
+        case 2:
+            skipCount <<= 1;
+            break;
+       case 4:
+            skipCount <<= 2;
+            break;
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this number of chips");
+            return false;
+        }
+
+        switch ( width ) {
+        case enWidth8:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x00000090, sizeByte ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeByte );
+                fCore.queue += readMemory( flshbase + skipCount, sizeByte );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeByte, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeByte, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x000000FF, sizeByte ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                flshbase += 1;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        case enWidth16:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x00000090, sizeWord ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeWord );
+                fCore.queue += readMemory( flshbase + skipCount, sizeWord );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeWord, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeWord, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x000000FF, sizeWord ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                flshbase += 2;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        case enWidth32:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x00000090, sizeDword ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeDword );
+                fCore.queue += readMemory( flshbase + skipCount, sizeDword );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeDword, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeDword, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                if ( fCore.queue.send( writeMemory( flshbase + 32, 0x000000FF, sizeDword ) ) == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                flshbase += 4;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this width");
+            return false;
+        }
+
+        return false;
+    }
+
+    bool sendJEDEC(uint32_t *id, uint32_t flshbase, eFlashWidth width, uint32_t chipCount) {
+
+        uint32_t addressA = 0x5555;
+        uint32_t addressB = 0x2AAA;
+        uint32_t skipCount = 1;
+
+        fCore.castMessage("Info: Detecting with JEDEC commands..");
+
+        switch ( width ) {
+        case enWidth8: break;
+        case enWidth16:
+            skipCount = 2;
+            addressA <<= 1;
+            addressB <<= 1;
+            break;
+        case enWidth32:
+            skipCount = 4;
+            addressA <<= 2;
+            addressB <<= 2;
+            break;
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this width");
+            return false;
+        }
+
+        switch ( chipCount ) {
+        case 1: break;
+        case 2:
+            skipCount <<= 1;
+            addressA <<= 1;
+            addressB <<= 1;
+            break;
+       case 4:
+            skipCount <<= 2;
+            addressA <<= 2;
+            addressB <<= 2;
+            break;
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this number of chips");
+            return false;
+        }
+
+        addressA += flshbase;
+        addressB += flshbase;
+
+        switch ( width ) {
+        case enWidth8:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeByte );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeByte );
+                fCore.queue += writeMemory( addressA, 0x00000090, sizeByte );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeByte );
+                fCore.queue += readMemory( flshbase + skipCount, sizeByte );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeByte, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeByte, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeByte );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeByte );
+                fCore.queue += writeMemory( addressA, 0x000000F0, sizeByte );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                addressA += 1;
+                addressB += 1;
+                flshbase += 1;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        case enWidth16:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeWord );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeWord );
+                fCore.queue += writeMemory( addressA, 0x00000090, sizeWord );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeWord );
+                fCore.queue += readMemory( flshbase + skipCount, sizeWord );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeWord, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeWord, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeWord );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeWord );
+                fCore.queue += writeMemory( addressA, 0x000000F0, sizeWord );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                addressA += 2;
+                addressB += 2;
+                flshbase += 2;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        case enWidth32:
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeDword );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeDword );
+                fCore.queue += writeMemory( addressA, 0x00000090, sizeDword );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send ID command");
+                    return false;
+                }
+
+                sleep_ms( 10 );
+
+                id[(i*2) + 0] = 0;
+                id[(i*2) + 1] = 0;
+
+                fCore.queue  = readMemory( flshbase + 0, sizeDword );
+                fCore.queue += readMemory( flshbase + skipCount, sizeDword );
+                if ( !fCore.queue.send() ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 0], TAP_DO_READMEMORY, sizeDword, 0 ) ||
+                     !fCore.getData( (uint16_t*)&id[(i*2) + 1], TAP_DO_READMEMORY, sizeDword, 1 ) ){
+                    core.castMessage("Error: Unable to retrieve ID data");
+                    return false;
+                }
+
+                fCore.queue  = writeMemory( addressA, 0x000000AA, sizeDword );
+                fCore.queue += writeMemory( addressB, 0x00000055, sizeDword );
+                fCore.queue += writeMemory( addressA, 0x000000F0, sizeDword );
+                if ( fCore.queue.send() == false ) {
+                    fCore.castMessage("Error: Unable to send reset command");
+                    return false;
+                }
+
+                addressA += 4;
+                addressB += 4;
+                flshbase += 4;
+            }
+            sleep_ms( 10 );
+            return true;
+
+        default:
+            fCore.castMessage("Error: Don't know how to deal with this width");
+            return false;
+        }
+
+        return false;
+    }
+
 public:
     explicit CPU32_genflash(bdmstuff &p)
         : requests(p), requests_cpu32(p), fCore(p) {
@@ -261,6 +582,94 @@ public:
         id.MID = idTemp[0];
         id.DID = idTemp[2];
 
+        flashKnown = true;
+
+        return true;
+    }
+
+    bool detect_mk2(flashid_t &id, uint32_t flshbase, eFlashWidth width, uint32_t chipCount = 1) {
+        uint32_t idTemp[8];
+        const flashpart_t *part;
+        bool allMatched = true;
+
+        clearFlashParams();
+        driverInited = false;
+        flashBase = flshbase;
+
+        if ( chipCount == 0 || chipCount > 2 ) {
+            fCore.castMessage("Error: Don't know how to deal with this chip count");
+            return false;
+        }
+
+        fCore.castMessage("Info: base %06x", flshbase);
+
+        // Be silent the first time
+        if ( !sendOldcshool( idTemp, flshbase, width, chipCount) )
+            return false;
+
+        for ( uint32_t i = 0; i < chipCount; i++ ) {
+            if ( parthelper::getMap(idTemp[(i*2) + 0], idTemp[(i*2) + 1], width ) == nullptr )
+                allMatched = false;
+        }
+
+        if ( allMatched == true ) {
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+                part = parthelper::getMap(idTemp[(i*2) + 0], idTemp[(i*2) + 1], width );
+                fCore.castMessage("Info: Chip %u MID    %04X (%s)", i, idTemp[(i*2) + 0], parthelper::getManufacturerName( idTemp[(i*2) + 0] ));
+                if ( part == nullptr || part->pName == nullptr || part->pName[0] == 0 ) {
+                    fCore.castMessage("Info: Chip %u DID    %04X (Unknown)", i, idTemp[(i*2) + 1]);
+                    if ( part == nullptr ) {
+                        fCore.castMessage("Error: You should definitely not see this message!", i, idTemp[(i*2) + 1], part->pName);
+                        return false;
+                    }
+                } else {
+                    fCore.castMessage("Info: Chip %u DID    %04X (%s)", i, idTemp[(i*2) + 1], part->pName);
+                }
+
+                if ( i > 0 &&
+                        (idTemp[(i*2) + 0] != idTemp[(i*2) - 2] ||
+                         idTemp[(i*2) + 1] != idTemp[(i*2) - 1])) {
+                    fCore.castMessage("Warning: Part numbers doesn't match!");
+                }
+            }
+        } else {
+
+            allMatched = true;
+
+            fCore.castMessage("Info: failed");
+
+            if ( !sendJEDEC( idTemp, flshbase, width, chipCount) )
+                return false;
+
+            for ( uint32_t i = 0; i < chipCount; i++ ) {
+
+                part = parthelper::getMap(idTemp[(i*2) + 0], idTemp[(i*2) + 1], width );
+
+                fCore.castMessage("Info: Chip %u MID    %04X (%s)", i, idTemp[(i*2) + 0], parthelper::getManufacturerName( idTemp[(i*2) + 0] ));
+                if ( part == nullptr || part->pName == nullptr || part->pName[0] == 0 ) {
+                    fCore.castMessage("Info: Chip %u DID    %04X (Unknown)", i, idTemp[(i*2) + 1]);
+                    if ( part == nullptr )
+                        allMatched = false;
+                } else {
+                    fCore.castMessage("Info: Chip %u DID    %04X (%s)", i, idTemp[(i*2) + 1], part->pName);
+                }
+
+                if ( i > 0 &&
+                        (idTemp[(i*2) + 0] != idTemp[(i*2) - 2] ||
+                         idTemp[(i*2) + 1] != idTemp[(i*2) - 1])) {
+                    fCore.castMessage("Warning: Part numbers doesn't match!");
+                }
+            }
+        }
+
+        if ( !allMatched ) {
+            fCore.castMessage("Error: Unable to detect");
+            return false;
+        }
+
+        // Sample first chip ID
+        id.MID = idTemp[0];
+        id.DID = idTemp[1];
         flashKnown = true;
 
         return true;

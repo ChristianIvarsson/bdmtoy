@@ -207,6 +207,31 @@ protected:
         // Detect flash type
         uint32_t flashBase = region->address;
 
+        if ( gen == txTrionic5 ) {
+
+            // Avoid enabling H/V until L/V chips has been tested
+            if ( !flash.detect_mk2( fID, flashBase, enWidth8 , 2 ) ) {
+
+                core.castMessage("Info: This is trionic 5. Testing H/V..");
+
+                core.queue  = writeMemory( 0xFFFC14, 0x0040, sizeWord );
+                core.queue += readMemory ( 0xFFFC16, sizeWord  );
+
+                if ( !core.queue.send() ||
+                     !core.getData(hwTemp, TAP_DO_READMEMORY, 2, 0) ||
+                     !core.queue.send( writeMemory( 0xFFFC16, hwTemp[0] | 0x0040, sizeWord )) ) {
+                    core.castMessage("Error: Unable to enable H/V");
+                    return false;
+                }
+                if ( !flash.detect_mk2( fID, flashBase, enWidth8 , 2 ) )
+                    return false;
+            }
+        } else {
+            if ( !flash.detect_mk2( fID, flashBase, enWidth16, 1 ) )
+                return false;
+        }
+
+/*
         if ( !flash.detect( fID, 0x100000, flashBase ) ) {
             // Trionic 5 with original flash needs H/V
             if ( gen != txTrionic5 )
@@ -227,6 +252,7 @@ protected:
             if ( !flash.detect( fID, 0x100000, flashBase ) )
                 return false;
         }
+*/
 
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
