@@ -136,7 +136,7 @@ protected:
                 return false;
             }
 
-            if ( core.fileSize < flashSize ) {
+            if ( core.fileSize >= minAllow && core.fileSize < flashSize ) {
                 core.castMessage("Info: File is too small. Checking if it can be mirrored..");
                 if ( core.mirrorReadFile( flashSize ) == false )
                     return false;
@@ -257,7 +257,7 @@ protected:
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
 
-        if ( part == nullptr ) {
+        if ( part == nullptr || part->partitions == nullptr ) {
             core.castMessage("Error: Host does not understand this flash");
             return false;
         }
@@ -265,6 +265,35 @@ protected:
         if ( part->count > 32 || part->count == 0 ) {
             core.castMessage("Error: Partition count out of bounds");
             return false;
+        }
+
+
+
+        // Check if a file needs to be mirrored
+        if ( gen == txTrionic5 || gen == txTrionic7 ) {
+
+            size_t flashSize = part->partitions[ part->count - 1 ];
+            size_t minAllow = (gen == txTrionic5) ? 0x20000 : 0x080000;
+            size_t maxAllow = (gen == txTrionic5) ? 0x80000 : 0x100000;
+
+            if ( flashSize < minAllow || flashSize > maxAllow ) {
+                core.castMessage("Error: Not seeing the correct flash size for this ECU");
+                return false;
+            }
+
+            if ( core.fileSize >= minAllow && core.fileSize < flashSize ) {
+                core.castMessage("Info: File is too small. Checking if it can be mirrored..");
+                if ( core.mirrorReadFile( flashSize ) == false )
+                    return false;
+                core.castMessage("Info: It could! Let's go");
+            }
+
+
+            // Core will automatically increment fileSize while mirroring
+            if ( core.fileSize != flashSize ) {
+                core.castMessage("Error: File size does not match expected size");
+                return false;
+            }
         }
 
 
