@@ -275,6 +275,8 @@ protected:
             size_t flashSize = part->partitions[ part->count - 1 ];
             size_t minAllow = (gen == txTrionic5) ? 0x20000 : 0x080000;
             size_t maxAllow = (gen == txTrionic5) ? 0x80000 : 0x100000;
+            // Trionic 5 has two of these
+            flashSize = (gen == txTrionic5) ? (flashSize * 2) : flashSize;
 
             if ( flashSize < minAllow || flashSize > maxAllow ) {
                 core.castMessage("Error: Not seeing the correct flash size for this ECU");
@@ -401,7 +403,7 @@ public:
 
     bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return writeFlash( txTrionic5, target, region );
+            return writeFlash_mk2( txTrionic5, target, region );
         else if ( region->type == opSRAM )
             return writeSRAM( txTrionic5, target, region );
         return false;
