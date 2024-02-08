@@ -412,8 +412,7 @@ public:
         return false;
     }
 
-    bool init(const target_t *, const memory_t *)
-    {
+    bool init(const target_t *, const memory_t *) {
         TAP_Config_host_t config;
         uint16_t buf[ 4 ];
 
@@ -429,8 +428,8 @@ public:
         core.queue += targetReady();
         core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
-        core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
+        core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         if ( core.queue.send() == false ) return false;
 
         ////////////////////////////////////////////////////////////////////
@@ -475,9 +474,9 @@ public:
             return false;
         }
 
-        if ( core.getData( &buf[0], TAP_DO_READMEMORY, 4, 0 ) &&
-             core.getData( &buf[2], TAP_DO_READMEMORY, 2, 1 ) &&
-             core.getData( &buf[3], TAP_DO_READMEMORY, 2, 2 ) ) {
+        if ( core.getData( &buf[0], TAP_DO_READMEMORY, sizeDword, 0 ) &&
+             core.getData( &buf[2], TAP_DO_READMEMORY, sizeWord , 1 ) &&
+             core.getData( &buf[3], TAP_DO_READMEMORY, sizeWord , 2 ) ) {
             for ( uint32_t i = 0; i < 4; i++ )
                 core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
         } else {
@@ -506,8 +505,7 @@ public:
         return false;
     }
 
-    bool init(const target_t *, const memory_t *)
-    {
+    bool init(const target_t *, const memory_t *) {
         TAP_Config_host_t config;
         uint16_t buf[ 4 ];
 
@@ -523,8 +521,8 @@ public:
         core.queue += targetReady();
         core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
-        core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
+        core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         if ( core.queue.send() == false ) return false;
 
         ////////////////////////////////////////////////////////////////////
@@ -567,9 +565,9 @@ public:
             return false;
         }
 
-        if ( core.getData( &buf[0], TAP_DO_READMEMORY, 4, 0 ) &&
-             core.getData( &buf[2], TAP_DO_READMEMORY, 2, 1 ) &&
-             core.getData( &buf[3], TAP_DO_READMEMORY, 2, 2 ) ) {
+        if ( core.getData( &buf[0], TAP_DO_READMEMORY, sizeDword, 0 ) &&
+             core.getData( &buf[2], TAP_DO_READMEMORY, sizeWord , 1 ) &&
+             core.getData( &buf[3], TAP_DO_READMEMORY, sizeWord , 2 ) ) {
             for ( uint32_t i = 0; i < 4; i++ )
                 core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
         } else {
@@ -598,8 +596,8 @@ public:
         return false;
     }
 
-    bool init(const target_t *, const memory_t *)
-    {
+    bool init(const target_t *, const memory_t *) {
+
         TAP_Config_host_t config;
 
         core.castMessage("Info: trionic_8::init");
@@ -619,7 +617,6 @@ public:
         core.queue += writeMemory( 0xFFFA55, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
         core.queue += writeMemory( 0xFFFA55, 0x00AA, sizeByte ); 
         core.queue += writeMemory( 0xFFFA58, 0x0000, sizeWord ); // SWI - Disable that bastard
-
         core.queue += writeMemory( 0xFFFA08, 0x0008, sizeWord ); // SYNCR - Set clock bits
         if ( core.queue.send() == false ) return false;
 
@@ -639,6 +636,162 @@ public:
     }
 };
 
+
+class trionic_8mcp
+    : public iTrionic {
+
+        bool setShadow( bool state ) {
+            uint16_t shadowSet;
+
+            if ( !core.queue.send(readMemory( 0xFFF800, sizeWord )) ||
+                 !core.getData( &shadowSet, TAP_DO_READMEMORY, sizeWord, 0 )) {
+                core.castMessage("Error: Unable to retrieve current shaddow settings");
+                return false;
+            }
+
+            // Return if already in the correct mode
+            if ( ( state && (shadowSet & 0x2000) != 0) ||
+                 (!state && (shadowSet & 0x2000) == 0) )
+                return true;
+
+            if ( state )
+                shadowSet |= 0x2000;
+            else
+                shadowSet &= 0xDFFF;
+
+            if ( !core.queue.send(writeMemory( 0xFFF800, shadowSet, sizeWord )) ) {
+                core.castMessage("Error: Unable to set new shaddow settings");
+                return false;
+            }
+
+            return true;
+        }
+
+        bool dumpMCP() {
+            memory_t memSpec = { opFlash };
+
+            if ( !setShadow( false ) )
+                return false;
+
+            memSpec.size = 0x40000;
+            core.setRange( &memSpec );
+
+            // Dump main portion
+            if ( core.queue.send( assistDump( 0, 0x40000 ) ) == false ) {
+                core.castMessage("Error: Unable to dump main flash");
+                return false;
+            }
+
+            if ( !setShadow( true ) )
+                return false;
+
+            memSpec.size = 256;
+            core.setRange( &memSpec );
+
+            if ( core.queue.send( assistDump( 0, 256 ) ) == false ) {
+                core.castMessage("Error: Unable to dump shadow");
+                return false;
+            }
+
+            return core.swapDump( 4 );
+        }
+
+        bool flashMCP() {
+            return false;
+        }
+
+public:
+    trionic_8mcp(bdmstuff &p)
+        : requests(p), requests_cpu32(p), iTrionic(p) { }
+    ~trionic_8mcp() { }
+
+    // MC68F375 is complex with shadow regions and other annoying stuff so the generic stuff won't do
+    bool read(const target_t *, const memory_t *mem) {
+
+        if ( mem->type == opFlash )
+            return dumpMCP();
+
+        // Treat everything else as regular reads
+        if ( core.queue.send( assistDump( mem->address, mem->size ) ) == false ) {
+            core.castMessage("Info: trionic_8mcp::read - Unable to start dump");
+            return false;
+        }
+
+        return core.swapDump( 4 );
+    }
+
+    bool write( const target_t *target , const memory_t *region ) {
+
+        if ( region->type == opFlash )
+            return flashMCP();
+
+        else if ( region->type == opSRAM )
+            return writeSRAM( txTrionic8mcp, target, region );
+
+        return false;
+    }
+
+    bool init(const target_t *, const memory_t *) {
+
+        TAP_Config_host_t config;
+        uint16_t buf[ 4 ];
+
+        core.castMessage("Info: trionic_8mcp::init");
+
+        config.Type = TAP_IO_BDMOLD;
+        config.Frequency = 1000000;
+        config.cfgmask.Endian = TAP_BIGENDIAN;
+
+        // Interface config
+        core.queue  = setInterface( config );
+        core.queue += targetReset();
+        core.queue += targetReady();
+        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
+        core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
+        core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
+        core.queue += writeMemory( 0xFFFA04, 0xD080, sizeWord ); // SYNCR - Set clock bits  (Used to be 0xD084)
+        if ( core.queue.send() == false ) return false;
+
+        sleep_ms( 5 );
+
+        config.Frequency = 3000000;
+
+        core.queue  = setInterface( config );
+        core.queue += writeMemory( 0xFFF800, 0xC800, sizeWord ); // CMFIMCR - Set STOP and PROTECT bit. LOCK to false
+        core.queue += writeMemory( 0xFFF808, 0x0000, sizeWord ); // CMFIBAH - Base flash at 00_0000
+        core.queue += writeMemory( 0xFFF80A, 0x0000, sizeWord ); // CMFIBAL -/
+        core.queue += writeMemory( 0xFFF800, 0x4800, sizeWord ); // CMFIMCR - Enable flash
+
+        core.queue += writeMemory( 0xFFF884, 0x1000, sizeWord ); // DPTBAR  - Base DPTRAM at 10_0000
+        core.queue += writeMemory( 0xFFF880, 0x0000, sizeWord ); // DPTMCR  - Enable DPTRAM
+
+        core.queue += writeMemory( 0xFFFB04, 0x0020, sizeWord ); // RAMBAH  - Base SRAM at 20_0000
+        core.queue += writeMemory( 0xFFFB06, 0x0000, sizeWord ); // RAMBAL  -/
+        core.queue += writeMemory( 0xFFFB00, 0x0800, sizeWord ); // RAMMCR  - Enable SRAM
+        if ( core.queue.send() == false ) return false;
+
+        core.queue  = readMemory( 0x000000, sizeDword ); // Flash
+        core.queue += readMemory( 0x100000, sizeWord  ); // DPTRAM
+        core.queue += readMemory( 0x200000, sizeWord  ); // SRAM
+        if ( core.queue.send() == false ) {
+            core.castMessage("Error: trionic_8mcp::init - Unable to perform read check on memory regions");
+            return false;
+        }
+
+        if ( core.getData( &buf[0], TAP_DO_READMEMORY, sizeDword, 0 ) &&
+             core.getData( &buf[2], TAP_DO_READMEMORY, sizeWord , 1 ) &&
+             core.getData( &buf[3], TAP_DO_READMEMORY, sizeWord , 2 ) ) {
+            for ( uint32_t i = 0; i < 4; i++ )
+                core.castMessage("Info: [ %u ] - %04X", i, buf[i] );
+        } else {
+            core.castMessage("Error: trionic_8mcp::init - Unable to retrieve read checks from memory regions");
+            return false;
+        }
+
+        return true;
+    }
+};
+
 iTarget *instTrionic5(bdmstuff &core) {
     return new trionic_5( core );
 }
@@ -649,4 +802,8 @@ iTarget *instTrionic7(bdmstuff &core) {
 
 iTarget *instTrionic8(bdmstuff &core) {
     return new trionic_8( core );
+}
+
+iTarget *instTrionic8mcp(bdmstuff &core) {
+    return new trionic_8mcp( core );
 }

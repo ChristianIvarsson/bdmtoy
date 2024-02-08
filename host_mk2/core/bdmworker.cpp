@@ -688,8 +688,10 @@ bool bdmworker::getStatus(uint16_t *status) {
 }
 
 bool bdmworker::swapBuffer(uint32_t blockSize, size_t nBytes) {
-    uint8_t *fBuf = (uint8_t *)file.buffer;
+    uint8_t *fBuf = file.buffer;
     uint8_t  swapBuffer[ 16 ];
+
+    core.castMessage("Info: Atempting byteswap of %.1fk in steps of %u", nBytes / 1024.0, blockSize);
 
     if ( blockSize < 2 || blockSize > sizeof(swapBuffer) ) {
         core.castMessage("Error: bdmworker::swapBuffer() - Unable to swap in steps of size %u", blockSize);

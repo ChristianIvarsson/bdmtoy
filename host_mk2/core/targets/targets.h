@@ -84,6 +84,7 @@ static const target_t s60ACC = {
 iTarget *instTrionic5( bdmstuff & );
 iTarget *instTrionic7( bdmstuff & );
 iTarget *instTrionic8( bdmstuff & );
+iTarget *instTrionic8mcp( bdmstuff & );
 
 static const target_t trionic_5_2 = {
     instTrionic5,
@@ -155,6 +156,20 @@ static const target_t trionic_8_x = {
     }
 };
 
+static const target_t trionic_8_x_mcp = {
+    instTrionic8mcp,
+    "Trionic 8 MCP",
+    "MC68F375, CPU32",
+    typeCPU32,
+    nullptr,
+    3,
+    {
+        { opFlash, 0x00000000, 0x00040100 }, // Flash     ( 256k + 256b shadow )
+        { opSRAM,  0x00200000, 0x00002000 }, // SRAM      ( 8k )
+        { opSRAM,  0x00100000, 0x00001800 }, // DPTRAM    ( 6k )
+    }
+};
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Target list
@@ -165,6 +180,7 @@ static const target_t *targets[] = {
     &trionic_5_7,       // Trionic 5.5 with 512k of flash
     &trionic_7_7,       // Trionic 7.7
     &trionic_8_x,       // Trionic 8
+    &trionic_8_x_mcp,   // Trionic 8 MCP / Copro
     &s60ACC,            // A random ACC unit from Volvo S60 (CPU32)
 };
 
