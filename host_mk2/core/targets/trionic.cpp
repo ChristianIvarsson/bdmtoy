@@ -275,6 +275,7 @@ protected:
             size_t flashSize = part->partitions[ part->count - 1 ];
             size_t minAllow = (gen == txTrionic5) ? 0x20000 : 0x080000;
             size_t maxAllow = (gen == txTrionic5) ? 0x80000 : 0x100000;
+
             // Trionic 5 has two of these
             flashSize = (gen == txTrionic5) ? (flashSize * 2) : flashSize;
 
@@ -289,7 +290,6 @@ protected:
                     return false;
                 core.castMessage("Info: It could! Let's go");
             }
-
 
             // Core will automatically increment fileSize while mirroring
             if ( core.fileSize != flashSize ) {

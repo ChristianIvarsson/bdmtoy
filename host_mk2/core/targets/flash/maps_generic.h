@@ -22,7 +22,7 @@ static const uint32_t one256k[] = {
 
 // One 512k partition
 static const uint32_t one512k[] = {
-    0x40000
+    0x80000
 };
 
 /////////////////////////////////
