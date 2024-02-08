@@ -26,7 +26,8 @@ BUILDMSG:
 
 
 TARGOBJS=\
-	build/trionic.o \
+	build/target_trionic.o \
+	build/target_cpu32.o \
 	build/target_helper.o
 
 APPOBJS=\
@@ -52,7 +53,10 @@ build/usb.o:   ../../../core/usb/usb.cpp
 
 
 
-build/trionic.o:   ../../../core/targets/trionic.cpp
+build/target_trionic.o:   ../../../core/targets/target_trionic.cpp
+	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
+
+build/target_cpu32.o:   ../../../core/targets/target_cpu32.cpp
 	@$(CXX) $(CPPFLAGS) $< -c -o $@ 
 
 build/target_helper.o:   ../../../core/targets/target_helper.cpp

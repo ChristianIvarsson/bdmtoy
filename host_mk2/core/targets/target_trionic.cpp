@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Trionic related code
+// Trionic targets
 
 #include <cstring>
 #include "../bdmstuff.h"
@@ -195,6 +195,7 @@ protected:
             core.castMessage("Error: This routine needs to know base address");
             return false;
         }
+
         if ( region->type != opFlash ) {
             core.castMessage("Error: This routine only knows how to deal with flash");
             return false;
@@ -223,6 +224,7 @@ protected:
                     core.castMessage("Error: Unable to enable H/V");
                     return false;
                 }
+
                 if ( !flash.detect_mk2( fID, flashBase, enWidth8 , 2 ) )
                     return false;
             }
@@ -307,6 +309,7 @@ protected:
             return false;
 
         for ( size_t i = 0; i < part->count; i++ ) {
+
             uint32_t start  = (i == 0) ? 0 : (part->partitions[ i - 1 ] * chipCount);
             uint32_t length = (part->partitions[ i ] * chipCount) - start;
 
@@ -424,7 +427,7 @@ public:
         core.queue  = setInterface( config );
         core.queue += targetReset();
         core.queue += targetReady();
-        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 ); // Core CPU32 configuration
+        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
         core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
@@ -518,7 +521,7 @@ public:
         core.queue  = setInterface( config );
         core.queue += targetReset();
         core.queue += targetReady();
-        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 ); // Core CPU32 configuration
+        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
         core.queue += writeMemory( 0xFFFA04, 0x7f00, sizeWord ); // SYNCR - Set clock bits
         core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
