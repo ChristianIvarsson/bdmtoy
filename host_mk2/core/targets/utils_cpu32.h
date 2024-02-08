@@ -944,6 +944,98 @@ public:
     {
         printf("cpu32_utils()\n");
     }
+
+    bool genericFlash(
+                    eFlashWidth width,
+                    uint32_t nChips,
+                    const target_t *,
+                    const memory_t *region,
+                    uint32_t driverAddress = 0x100000,
+                    uint32_t bufferAddress = 0x100400 ) {
+
+        md5k_t remoteKeys, localKeys;
+        flashid_t fID = { 0 };
+        crypto::md5 local_md5;
+
+        if ( region == nullptr ) {
+            core.castMessage("Error: This routine needs to know base address");
+            return false;
+        }
+
+        if ( region->type != opFlash ) {
+            core.castMessage("Error: This routine only knows how to deal with flash");
+            return false;
+        }
+
+        core.setTimeout( 61 * 1000 );
+
+        // Detect flash type
+        uint32_t flashBase = region->address;
+
+        if ( !flash.detect_mk2( fID, flashBase, width, nChips ) )
+            return false;
+
+        // Get address map of this flash
+        const flashpart_t *part = parthelper::getMap( fID.MID, fID.DID, width);
+
+        if ( part == nullptr ) {
+            core.castMessage("Error: Host does not understand this flash");
+            return false;
+        }
+
+        if ( part->count > 32 ) {
+            core.castMessage("Error: Too many partitions");
+            return false;
+        }
+
+        core.castMessage("Info: Comparing md5..");
+
+        uint32_t mask = 0;
+        if ( !md5.upload( driverAddress, true ) )
+            return false;
+
+        for ( size_t i = 0; i < part->count; i++ ) {
+
+            uint32_t start  = (i == 0) ? 0 : (part->partitions[ i - 1 ] * nChips);
+            uint32_t length = (part->partitions[ i ] * nChips) - start;
+
+            local_md5.hash( &localKeys, &core.buffer[ start ], length );
+
+            // Flash base does not necessarily sit at 0 so this has to be appended after the local file has been hashed
+            start += flashBase;
+
+            if ( !md5.hash( &remoteKeys, start, length, true ) )
+                return false;
+
+            if ( memcmp( &remoteKeys, &localKeys, sizeof(md5k_t) ) != 0 ) {
+                mask |= ( 1 << i );
+                core.castMessage("Info: part %2u (%06x - %06x) - different", i, start, start + length - 1);
+            } else {
+                core.castMessage("Info: part %2u (%06x - %06x) - identical", i, start, start + length - 1);
+            }
+        }
+
+        core.castMessage("Info: Partition mask %08x", mask);
+
+        if ( mask == 0 ) {
+            core.castMessage("Info: Everything is identical");
+            return true;
+        }
+
+        // Force bulk erase for testing
+        // mask = 0;
+
+        if ( !core.swapBuffer( 4, core.fileSize ) )
+            return false;
+
+        if ( !flash.upload(part, driverAddress, bufferAddress, nChips) )
+            return false;
+
+        if ( !flash.erase(mask) )
+            return false;
+
+        return flash.write(mask);
+    }
 };
 
 #endif
