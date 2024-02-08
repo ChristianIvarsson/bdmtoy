@@ -10,6 +10,8 @@
 #define MID_FUJITSU    ( 0x0004 )
 #define MID_INTEL      ( 0x0089 )
 #define MID_MXIC       ( 0x00C2 )
+#define MID_PMC        ( 0x009D )
+#define MID_SST        ( 0x00BF )
 #define MID_ST         ( 0x0020 )
 #define MID_WINBOND    ( 0x00DA )
 
@@ -85,10 +87,10 @@ static const didcollection_t amd_dids = {
 // AMIC                      ( 0037 )
 
 static const flashpart_t amic_x8[] = {
-    { 0x000000A1,"A29512"          , enToggleFlash      , partMacro(two32k)        },
-    { 0x000000A4,"A29010"          , enToggleFlash      , partMacro(four32k)       },
-    { 0x0000008C,"A29002T"         , enToggleFlash      , partMacro(X002t)         },
-    { 0x0000000D,"A29002B"         , enToggleFlash      , partMacro(X002b)         },
+    { 0x000000A1, "A29512"         , enToggleFlash      , partMacro(two32k)        },
+    { 0x000000A4, "A29010"         , enToggleFlash      , partMacro(four32k)       },
+    { 0x0000008C, "A29002T"        , enToggleFlash      , partMacro(X002t)         },
+    { 0x0000000D, "A29002B"        , enToggleFlash      , partMacro(X002b)         },
 };
 
 static const didcollection_t amic_dids = {
@@ -206,6 +208,41 @@ static const didcollection_t mxic_dids = {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PMC                       ( 009D )
+
+static const flashpart_t pmc_x8[] = {
+    { 0x0000001C, "PM39F010"       , enToggleFlash      , partMacro(thirtytwo4k)   },
+    { 0x0000004D, "PM39F020"       , enToggleFlash      , partMacro(sixtyfour4k)   },
+    { 0x0000004E, "PM39F040"       , enToggleFlash      , partMacro(onetwentyeight4k) },
+};
+
+static const didcollection_t pmc_dids = {
+    "PMC",
+    { colMacro(pmc_x8)  },
+    { nullptr },
+    { nullptr }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SST                       ( 00BF )
+
+static const flashpart_t sst_x8[] = {
+    { 0x000000B4, "SST39SF512"     , enToggleFlash      , partMacro(sixteen4k)     },
+    { 0x000000B5, "SST39SF010"     , enToggleFlash      , partMacro(thirtytwo4k)   },
+    { 0x000000B6, "SST39SF020"     , enToggleFlash      , partMacro(sixtyfour4k)   },
+    { 0x000000B6, "SST39SF040"     , enToggleFlash      , partMacro(onetwentyeight4k) },
+};
+
+static const didcollection_t sst_dids = {
+    "SST",
+    { colMacro(sst_x8)  },
+    { nullptr },
+    { nullptr }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ST                        ( 0020 )
 
 static const flashpart_t st_x8[] = {
@@ -218,6 +255,27 @@ static const flashpart_t st_x8[] = {
 static const didcollection_t st_dids = {
     "ST",
     { colMacro(st_x8)  },
+    { nullptr },
+    { nullptr }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Winbond                   ( 00DA )
+
+static const flashpart_t winbond_x8[] = {
+    { 0x000000C8, "W29C512"        , enPaged128         , partMacro(one64k)        }, // (  64k.  512 128-byte pages )
+    { 0x000000C1, "W29C010"        , enPaged128         , partMacro(one128k)       }, // ( 128k. 1024 128-byte pages )
+    { 0x000000DA, "W29C020"        , enPaged128         , partMacro(one256k)       }, // ( 256k. 2048 128-byte pages )
+    { 0x00000046, "W29C040"        , enPaged256         , partMacro(one512k)       }, // ( 512k. 2048 256-byte pages )
+    { 0x00000038, "W39L512"        , enToggleFlash      , partMacro(sixteen4k)     },
+    { 0x000000A1, "W39F010"        , enToggleFlash      , partMacro(thirtytwo4k)   },
+    { 0x0000008C, "W39F020"        , enToggleFlash      , partMacro(sixtyfour4k)   },
+};
+
+static const didcollection_t winbond_dids = {
+    "Winbond",
+    { colMacro(winbond_x8)  },
     { nullptr },
     { nullptr }
 };

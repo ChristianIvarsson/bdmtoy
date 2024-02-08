@@ -23,10 +23,6 @@ class parthelper {
 public:
     parthelper() {}
 
-/*
-#define MID_WINBOND    ( 0x00DA )
-*/
-
     static const flashpart_t *getMap( uint32_t mid, uint32_t did, eFlashWidth width ) {
         const dids_t *dids = nullptr;
         switch ( mid ) {
@@ -38,7 +34,10 @@ public:
         case MID_CATALYST: dids = ofWidth( catalyst_dids, width ); break; /* 0031 */
         case MID_AMIC:     dids = ofWidth( amic_dids    , width ); break; /* 0037 */
         case MID_INTEL:    dids = ofWidth( intel_dids   , width ); break; /* 0089 */
+        case MID_PMC:      dids = ofWidth( pmc_dids     , width ); break; /* 009D */
+        case MID_SST:      dids = ofWidth( sst_dids     , width ); break; /* 00BF */
         case MID_MXIC:     dids = ofWidth( mxic_dids    , width ); break; /* 00C2 */
+        case MID_WINBOND:  dids = ofWidth( winbond_dids , width ); break; /* 00DA */
         default:
             break;
         }
@@ -66,7 +65,10 @@ public:
         case MID_CATALYST: return "Catalyst / CSI";             /* 0031 */
         case MID_AMIC:     return "AMIC";                       /* 0037 */
         case MID_INTEL:    return "Intel or Texas Instruments"; /* 0089 */
+        case MID_PMC:      return "PMC";                        /* 009D */
+        case MID_SST:      return "SST";                        /* 00BF */
         case MID_MXIC:     return "MXIC";                       /* 00C2 */
+        case MID_WINBOND:  return "Winbond";                    /* 00DA */
         default: return "Unknown";
         }
     }
