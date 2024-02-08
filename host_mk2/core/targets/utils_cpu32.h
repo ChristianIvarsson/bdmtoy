@@ -738,6 +738,8 @@ public:
     bool erase(uint32_t mask) {
 
         uint32_t Start = flashBase;
+        uint32_t nCount = 0;
+        uint32_t totCount = 0;
 
         if ( !driverInited ) {
             fCore.castMessage("Error: You must upload the flash driver before using this feature");
@@ -753,12 +755,21 @@ public:
         if ( mask == 0 || flashPart->count == 1 )
             return doBulkErase( flashBase, flashBase + (flashPart->partitions[ flashPart->count - 1 ] * chipCount) );
 
+        fCore.updateProgress( 0 );
+
+        // Determine number of partitions so that progress can be updated
+        for ( uint32_t i = 0; i < flashPart->count; i++ ) {
+            if ( ((1 << i) & mask) != 0 )
+                totCount++;
+        }
+
         // Sector erase
         for ( uint32_t i = 0; i < flashPart->count; i++ ) {
 
             if ( ((1 << i) & mask) != 0 ) {
                 if ( !doSectorErase(Start, flashBase + (flashPart->partitions[ i ] * chipCount)) )
                     return false;
+                fCore.updateProgress((int32_t)(float)100.0 * ++nCount / totCount);
             }
 
             // Map stores the last address of every partition + 1
@@ -778,6 +789,7 @@ public:
         uint32_t Start = flashBase;
         uint32_t maskOffs = 0;
         memory_t memSpec = { opFlash };
+        size_t   totLen = 0;
 
         if ( !driverInited ) {
             fCore.castMessage("Error: You must upload the flash driver before using this feature");
@@ -797,6 +809,26 @@ public:
         // Write all
         if ( mask == 0 )
             mask = ~mask;
+
+        // Count number of total bytes to write
+        while ( maskOffs < flashPart->count ) {
+            if ( ((1 << maskOffs) & mask) == 0 ) {
+                maskOffs++;
+                continue;
+            }
+            if ( maskOffs > 0 )
+                Start = flashBase + (flashPart->partitions[ maskOffs - 1 ] * chipCount);
+            totLen += ((flashBase + (flashPart->partitions[ maskOffs++ ] * chipCount)) - Start);
+        }
+
+        // Set total len
+        fCore.pagedProgress( true, totLen );
+
+        // Start over and do it for real this time
+        Start = flashBase;
+        maskOffs = 0;
+
+        fCore.castMessage("Info: Total length %u bytes", totLen);
 
         // Driver needs to know where the buffer is located
         if ( fCore.queue.send(writeAddressRegister(1, bufferBase)) == false ) { 

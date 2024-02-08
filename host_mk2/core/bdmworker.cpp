@@ -58,8 +58,10 @@ void bdmworker::setFlags( const uint16_t *rx ) {
         core.castMessage("Info: Driver done");
     else
         core.castMessage("Error: Adapter returned error %04X", rx[2]);
-    
-    core.castMessage("Info: Flag: %04X", rx[3]);
+
+    if ( rx[3] != 0 )
+        core.castMessage("Info: Flag: %04X", rx[3]);
+
     flagStatus( rx[2] );
 }
 
@@ -77,15 +79,29 @@ void ::bdmworker::resetRxTmp() {
 // <Mend me>
 // Update progress bar
 void bdmworker::updateProgress() {
+    int32_t percentage;
     if ( memory.autoProgress ) {
-        int32_t percentage = (int32_t)(float)100.0 * (memory.expectAt - memory.startAt) / (memory.stopAt - memory.startAt);
-
+        if ( memory.pagedProgress )
+            percentage = (int32_t)(float)100.0 * memory.doneLen / memory.totLen;
+        else
+            percentage = (int32_t)(float)100.0 * (memory.expectAt - memory.startAt) / (memory.stopAt - memory.startAt);
         // Pushing progress is kinda slow. Only do it in 5% increments
         if ( percentage > (memory.lastProgress + 4) || percentage < memory.lastProgress ) {        
-            if (percentage > 100)
-                percentage = 100;
+            if /**/ (percentage > 100) percentage = 100;
+            else if (percentage <   0) percentage =   0;
             core.castProgress( memory.lastProgress = percentage );
         }
+    }
+}
+
+// Do manual update and disable auto progress
+void bdmworker::updateProgress( int32_t prog ) {
+    memory.autoProgress = false;
+    memory.pagedProgress = false;
+    if ( prog > (memory.lastProgress + 4) || prog < memory.lastProgress ) {        
+        if /**/ (prog > 100) prog = 100;
+        else if (prog <   0) prog =   0;
+        core.castProgress( memory.lastProgress = prog );
     }
 }
 
@@ -145,6 +161,7 @@ void bdmworker::sndData( const uint16_t *rx )
 
     // updateProgress() needs this
     memory.expectAt = bufAddr + Len;
+    memory.doneLen += Len;
 
     updateProgress();
 
@@ -210,6 +227,7 @@ void bdmworker::recData( const uint16_t *rx )
 
     memory.expectAt += nBytes;
     file.location   += nBytes;
+    memory.doneLen  += nBytes;
 
     updateProgress();
 
@@ -564,6 +582,8 @@ void bdmworker::reset() {
 
     timer.set( GLOBALTIMEOUT * 1000 );
     memory.autoProgress = true;
+    memory.pagedProgress = false;
+    memory.doneLen = 0;
 
     // - mutex?
     // - - Received commands will currently lock out further reception by setting inFlight to false
@@ -627,6 +647,20 @@ void bdmworker::setTimeout(uint32_t msTimeout) {
 
 void bdmworker::autoProgress(bool state) {
     memory.autoProgress = state;
+    memory.lastProgress = 0;
+    if ( !state )
+        memory.pagedProgress = false;        
+}
+
+void bdmworker::pagedProgress(bool state, size_t totalLen) {
+    if ( state && totalLen > 0 ) {
+        memory.pagedProgress = true;
+        memory.totLen  = totalLen;
+        memory.doneLen = 0;
+        autoProgress( true );
+    } else {
+        memory.pagedProgress = false;
+    }
 }
 
 uint16_t bdmworker::lastFault() {

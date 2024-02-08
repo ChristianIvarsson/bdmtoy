@@ -11,7 +11,9 @@
 
 class m_stuff : public bdmstuff {
 public:
-    void castProgress(int32_t) { }
+    void castProgress(int32_t prog) { 
+        printf("%3d%%\n", prog);
+    }
     void castMessage(const char *str,...) {
         char tmp[256];
         va_list ap;

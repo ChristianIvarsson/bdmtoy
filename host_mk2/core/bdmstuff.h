@@ -102,11 +102,14 @@ class bdmworker
     timeout timer;
 
     struct {
-        bool     autoProgress = true;   // Should the download / upload code update the progress bar automatically?
-        int32_t  lastProgress = 0;      // Last known progress
-        uint64_t startAt      = 0;      // Where to start from
-        uint64_t expectAt     = 0;      // Expect chunk starting from this address
-        uint64_t stopAt       = 0;      // Stop when this address has been reached
+        bool     pagedProgress = false;  // Derive percentage from expected number of bytes instead of (expectAt - startAt) / (stopAt - startAt)
+        size_t   totLen        = 0;      // Number of expected bytes, total
+        size_t   doneLen       = 0;      // Number of bytes done
+        bool     autoProgress  = true;   // Should the download / upload code update the progress bar automatically?
+        int32_t  lastProgress  = 0;      // Last known progress
+        uint64_t startAt       = 0;      // Where to start from
+        uint64_t expectAt      = 0;      // Expect chunk starting from this address
+        uint64_t stopAt        = 0;      // Stop when this address has been reached
     } memory;
 
     struct {
@@ -182,8 +185,14 @@ public:
     // How long to wait for an answer before it's considered a fail
     void setTimeout( uint32_t );
 
-    // Should the worker update progress on its own   ( Devices with paged memory needs this off when reading/writing more than one page )
+    // Should the worker update progress on its own
     void autoProgress( bool );
+
+    // Setup paged read/write progress
+    void pagedProgress( bool state, size_t totalLen = 0 );
+
+    // Manual update of progress. Will disable autoprogress and paged progress
+    void updateProgress( int32_t );
 
     // Prepare worker for a download or upload        ( It has to know when to stop )
     void setRange( const memory_t * );
@@ -201,7 +210,7 @@ public:
                   uint32_t        index = 0 ); // If not the first matching command, which index?
 
     // Retrieve target status
-    bool getStatus(uint16_t *sts = nullptr);
+    bool getStatus( uint16_t *sts = nullptr );
 
     // Byteswap filebuffer where blockSize can be 1 - 16
     bool swapDump  ( uint32_t blockSize );
@@ -210,8 +219,8 @@ public:
     // Mirror file buffer - Only use this after reading a file
     bool mirrorReadFile( size_t toSize );
 
-    bool saveFile(const char*);
-    bool readFile(const char*);
+    bool saveFile( const char* );
+    bool readFile( const char* );
 
     const size_t & fileSize;
     const uint8_t * const & buffer;
