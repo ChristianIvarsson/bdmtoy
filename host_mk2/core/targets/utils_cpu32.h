@@ -967,8 +967,6 @@ public:
             return false;
         }
 
-        core.setTimeout( 61 * 1000 );
-
         // Detect flash type
         uint32_t flashBase = region->address;
 
@@ -988,11 +986,15 @@ public:
             return false;
         }
 
+        core.setTimeout( GLOBALTIMEOUT * 1000 );
+
         core.castMessage("Info: Comparing md5..");
 
         uint32_t mask = 0;
         if ( !md5.upload( driverAddress, true ) )
             return false;
+
+        core.setTimeout( 61 * 1000 );
 
         for ( size_t i = 0; i < part->count; i++ ) {
 
@@ -1034,7 +1036,7 @@ public:
         if ( !flash.erase(mask) )
             return false;
 
-        return flash.write(mask);
+        return ( flash.write(mask) && core.queue.send( targetReset() ) );
     }
 };
 

@@ -348,7 +348,7 @@ protected:
         if ( !flash.erase(mask) )
             return false;
 
-        return flash.write(mask);
+        return ( flash.write(mask) && core.queue.send( targetReset() ) );
     }
 
     bool writeSRAM( txFamily gen, const target_t *, const memory_t *region ) {
@@ -582,10 +582,71 @@ public:
     }
 };
 
+
+class trionic_8
+    : public iTrionic {
+public:
+    trionic_8(bdmstuff &p)
+        : requests(p), requests_cpu32(p), iTrionic(p) { }
+    ~trionic_8() { }
+
+    bool write( const target_t *target , const memory_t *region ) {
+        if ( region->type == opFlash )
+            return genericFlash( enWidth16, 1, target, region );
+        else if ( region->type == opSRAM )
+            return writeSRAM( txTrionic8, target, region );
+        return false;
+    }
+
+    bool init(const target_t *, const memory_t *)
+    {
+        TAP_Config_host_t config;
+
+        core.castMessage("Info: trionic_8::init");
+
+        config.Type = TAP_IO_BDMOLD;
+        config.Frequency = 1500000;
+        config.cfgmask.Endian = TAP_BIGENDIAN;
+
+        // Interface config
+        core.queue  = setInterface( config );
+        core.queue += targetReset();
+        core.queue += targetReady();
+        core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
+        core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
+        core.queue += writeMemory( 0xFFFA27, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
+        core.queue += writeMemory( 0xFFFA27, 0x00AA, sizeByte );
+        core.queue += writeMemory( 0xFFFA55, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
+        core.queue += writeMemory( 0xFFFA55, 0x00AA, sizeByte ); 
+        core.queue += writeMemory( 0xFFFA58, 0x0000, sizeWord ); // SWI - Disable that bastard
+
+        core.queue += writeMemory( 0xFFFA08, 0x0008, sizeWord ); // SYNCR - Set clock bits
+        if ( core.queue.send() == false ) return false;
+
+        sleep_ms( 10 );
+
+        if ( !core.queue.send( writeMemory( 0xFFFA08, 0x6008, sizeWord ) ) )
+            return false;
+
+        core.queue  = writeMemory( 0xFFF6C0, 0x8400, sizeWord );
+        core.queue += writeMemory( 0xFFF680, 0x8000, sizeWord );
+        core.queue += writeMemory( 0xFFF680, 0x0000, sizeWord );
+        core.queue += writeMemory( 0xFFF684, 0x1000, sizeWord );
+        if ( core.queue.send() == false ) return false;
+
+        config.Frequency = 6000000;
+        return core.queue.send( setInterface( config ) );
+    }
+};
+
 iTarget *instTrionic5(bdmstuff &core) {
     return new trionic_5( core );
 }
 
 iTarget *instTrionic7(bdmstuff &core) {
     return new trionic_7( core );
+}
+
+iTarget *instTrionic8(bdmstuff &core) {
+    return new trionic_8( core );
 }
