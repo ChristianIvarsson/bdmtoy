@@ -704,7 +704,7 @@ bool bdmworker::swapBuffer(uint32_t blockSize, size_t nBytes) {
     }
 
     if ( (nBytes % blockSize) != 0 ) {
-        core.castMessage("Error: bdmworker::swapBuffer() - Buffer size not in multiples of swapSize");
+        core.castMessage("Error: bdmworker::swapBuffer() - Buffer size not in multiples of requested step size");
         return false;
     }
 

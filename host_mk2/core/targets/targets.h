@@ -81,10 +81,25 @@ static const target_t s60ACC = {
 // Trionic CPU32 family
 
 // Instantiators
+iTarget *instTechII( bdmstuff & );
 iTarget *instTrionic5( bdmstuff & );
 iTarget *instTrionic7( bdmstuff & );
 iTarget *instTrionic8( bdmstuff & );
 iTarget *instTrionic8mcp( bdmstuff & );
+
+static const target_t tech_II = {
+    instTechII,
+    "GM TechII",
+    "MC68332, CPU32",
+    typeCPU32,
+    nullptr,
+    2,
+    {
+        { opFlash, 0x00000000, 0x00040000 }, // Flash     ( 256k )
+        // { opSRAM,  0x00200000, 0x00100000 }, // SRAM      ( 1M )
+        { opSRAM,  0x00100000, 0x00000800 }, // TPURAM    ( 2k )
+    }
+};
 
 static const target_t trionic_5_2 = {
     instTrionic5,
@@ -175,6 +190,7 @@ static const target_t trionic_8_x_mcp = {
 // Target list
 
 static const target_t *targets[] = {
+    &tech_II,           // GM TechII
     &trionic_5_2,       // Trionic 5.2
     &trionic_5_5,       // Trionic 5.5
     &trionic_5_7,       // Trionic 5.5 with 512k of flash
