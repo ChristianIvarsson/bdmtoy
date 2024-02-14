@@ -22,14 +22,17 @@ pagedErase:
 
 pagedWrite256:
     # Each page has 256 bytes of data. 
-    move.w   #255        , d7
-    bra.b    beginPage
+    moveq.l  #127        , d7
+    bra.b    prepPage
 
 pagedWrite128:
     # Each page has 128 bytes of data. 
-    moveq.l  #127        , d7
+    moveq.l  #63         , d7
 
+prepPage:
 
+    # Make it dwords!
+    lsr.l    #1          , wrkLen
 
 beginPage:
     movea.l  wrkSrc      , a5      /* Make a copy of source address        */
@@ -39,7 +42,7 @@ nextPage:
     move.w   d7          , tmpRegA /* Make a copy of count                 */
 
 comparePage:
-    cmpm.w   (a5)+       , (a6)+
+    cmpm.l   (a5)+       , (a6)+
     bne.b    doWrite
     dbra     tmpRegA     , comparePage
 
@@ -63,7 +66,7 @@ doWrite:
     lwCMD    0xA0A0
 
 writeLoop:
-    move.w   (a5)+       , (a6)+
+    move.l   (a5)+       , (a6)+
     dbra     tmpRegA     , writeLoop
 
 busyWait:
