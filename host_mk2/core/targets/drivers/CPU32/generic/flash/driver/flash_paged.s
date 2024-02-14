@@ -5,12 +5,15 @@
 .include "macro.inc"
 
 
-# It's all an illusion. Say "OK" to the host and let the pagewiter take care of it
+# It's all an illusion. Say "OK" to the host and let the pagewriter take care of it
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # a0 - Start from
 # a1 - Up to
 pagedErase:
-    # bsr.w    Delay
+    moveq.l  #-1         , d0
+eraseWait:
+    nop
+    dbra     d0          , eraseWait
     moveq.l  #1          , d0
     bgnd
 
