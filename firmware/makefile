@@ -230,11 +230,11 @@ firmware : $(ALLOBJS)
 	@$(SIZE) -B bin/firmware.elf
 
 flash :
-	openocd -f flash.cfg
+	openocd -f "flash.cfg"
 
 startdebug :
 	@$(GDB)
-	openocd -f debug.cfg
+	openocd -f "debug.cfg"
 
 
 
