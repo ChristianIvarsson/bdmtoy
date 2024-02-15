@@ -68,8 +68,8 @@ static const flashpart_t amd_x8[] = {
 };
 
 static const flashpart_t amd_x16[] = {
-    { 0x00002251, "AM29F200BT"     , enToggleFlash      , partMacro(am29f200bt)    },
-    { 0x00002257, "AM29F200BB"     , enToggleFlash      , partMacro(am29f200bb)    }, // S60/V70 ACC
+    { 0x00002251, "AM29F200BT"     , enToggleFlash      , partMacro(X002t)         },
+    { 0x00002257, "AM29F200BB"     , enToggleFlash      , partMacro(X002b)         }, // S60/V70 ACC
     { 0x00002223, "AM29F400BT"     , enToggleFlash      , partMacro(am29f400bt)    }, // Trionic 7
     { 0x000022AB, "AM29F400BB"     , enToggleFlash      , partMacro(am29f400bb)    },
     { 0x000022D6, "AM29F800BT"     , enToggleFlash      , partMacro(am29f800bt)    },
