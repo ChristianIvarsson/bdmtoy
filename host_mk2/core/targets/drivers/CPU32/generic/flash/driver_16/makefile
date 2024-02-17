@@ -1,4 +1,4 @@
-NAME=gendriver
+NAME=driver_16bit
 
 CC=m68k-elf-gcc
 AS=m68k-elf-as

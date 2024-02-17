@@ -10,7 +10,7 @@
 #include "partition_helper.h"
 
 // Target drivers
-#include "drivers/CPU32/generic/cpu32_flash.h"
+#include "drivers/CPU32/generic/cpu32_flash16.h"
 #include "drivers/CPU32/generic/cpu32_md5.h"
 
 class CPU32_genmd5 : public virtual requests_cpu32 {
@@ -634,7 +634,7 @@ public:
         // Upload driver
         fCore.castMessage("Info: Uploading flash driver..");
 
-        if ( fillDataBE4(destination, CPU32_flashdriver, sizeof(CPU32_flashdriver)) == false ) {
+        if ( fillDataBE4(destination, CPU32_flashdriver16, sizeof(CPU32_flashdriver16)) == false ) {
             fCore.castMessage("Error: Unable to upload driver");
             return false;
         }
