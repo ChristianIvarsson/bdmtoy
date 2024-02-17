@@ -8,8 +8,6 @@
 #include "../requests_cpu32.h"
 #include "utils_cpu32.h"
 
-#include "drivers/CPU32/trionic/txdriver.h"
-
 enum txFamily : uint32_t {
     txGeneric = 0,
     txTrionic5,
@@ -21,166 +19,7 @@ enum txFamily : uint32_t {
 class iTrionic
     : public cpu32_utils, public virtual requests_cpu32, public iTarget {
 
-    bool driverDemand( uint32_t what, uint32_t driverBase = 0x100400 ) {
-        bool retval;
-        uint16_t status;
-        uint32_t driverResponse;
-
-        // Store what to do
-        if ( !core.queue.send(writeDataRegister( 0, what )) ) {
-            core.castMessage("Error: driverDemand - Could not write d0");
-            return false;
-        }
-
-        // Set program counter to 10_0400
-        if ( !core.queue.send(writeSystemRegister( 0, driverBase )) ) {
-            core.castMessage("Error: driverDemand - Could not set program counter");
-            return false;
-        }
-
-        // Run target resident driver
-        if ( !core.queue.send(targetStart()) ) {
-            core.castMessage("Error: driverDemand - Could not start target");
-            return false;
-        }
-
-        // Wait for target stop
-        do {
-            retval = core.getStatus( &status );
-            // Let's be nice. No need to absolutely hammer the status request
-            sleep_ms( 50 );
-        } while ( retval && status == RET_TARGETRUNNING );
-
-        if ( status != RET_TARGETSTOPPED ) {
-            core.castMessage("Error: driverDemand - Could not stop target");
-            return false;
-        }
-
-        if ( !core.queue.send(readDataRegister( 0 )) ||
-             !core.getData( (uint16_t*)&driverResponse, TAP_DO_READREGISTER, 4 ) ) {
-            core.castMessage("Error: driverDemand - Could not retrieve driver status");
-            return false;
-        }
-
-        if ( driverResponse != 1 ) {
-            core.castMessage("Error: driverDemand - Driver failed with %08x", driverResponse);
-            return false;
-        }
-
-        return true;
-    }
-
 protected:
-    bool writeFlash( txFamily gen, const target_t *, const memory_t *region ) {
-
-        uint16_t idTemp[ 8 ];
-        uint32_t flashType, flashSize;
-        memory_t memSpec = { opFlash };
-
-        if ( region != nullptr && region->type != opFlash ) {
-            core.castMessage("Error: This routine only knows how to deal with flash");
-            return false;
-        }
-
-        // Upload driver
-        core.castMessage("Info: Uploading driver..");
-
-        if ( fillDataBE4(0x100400, txDriver, sizeof(txDriver)) == false ) {
-            core.castMessage("Error: Unable to upload driver");
-            return false;
-        }
-
-        core.setTimeout( 61 * 1000 );
-
-        if ( driverDemand( 3 ) == false )
-            return false;
-
-        core.castMessage("Info: Retrieving flash info..");
-
-        core.queue  = readDataRegister( 7 );    // MID / DID
-        core.queue += readDataRegister( 3 );    // EID
-        core.queue += readDataRegister( 6 );    // Type
-        core.queue += readAddressRegister( 1 ); // Size
-
-        if ( core.queue.send() == false ||
-             core.getData( &idTemp[0], TAP_DO_READREGISTER, 4, 0 ) == false ||
-             core.getData( &idTemp[2], TAP_DO_READREGISTER, 4, 1 ) == false ||
-             core.getData( &idTemp[4], TAP_DO_READREGISTER, 4, 2 ) == false ||
-             core.getData( &idTemp[6], TAP_DO_READREGISTER, 4, 3 ) == false ) {
-            core.castMessage("Error: Unable to retrieve flash information");
-            return false;
-        }
-
-        flashType = *(uint32_t *) &idTemp[4];
-        flashSize = *(uint32_t *) &idTemp[6];
-
-        core.castMessage("Info: MID      %02X", (idTemp[0]>>8)&0xFF);
-        core.castMessage("Info: DID      %02X", (idTemp[0])   &0xFF);
-        core.castMessage("Info: EID    %04X"  ,  idTemp[2]);
-        core.castMessage("Info: size %06X"    ,  flashSize); 
-
-        switch ( flashType ) {
-        case 1:  core.castMessage("Info: Old H/W flash"); break;
-        case 2:  core.castMessage("Info: Modern toggle flash"); break;
-        case 3:  core.castMessage("Info: Disgusting Atmel flash.."); break;
-        default: core.castMessage("Error: Driver does not understand this flash"); return false;
-        }
-
-        if ( gen == txTrionic5 || gen == txTrionic7 ) {
-
-            size_t minAllow = (gen == txTrionic5) ? 0x20000 : 0x080000;
-            size_t maxAllow = (gen == txTrionic5) ? 0x80000 : 0x100000;
-
-            if ( flashSize < minAllow || flashSize > maxAllow ) {
-                core.castMessage("Error: Not seeing the correct flash size for this ECU");
-                return false;
-            }
-
-            if ( core.fileSize >= minAllow && core.fileSize < flashSize ) {
-                core.castMessage("Info: File is too small. Checking if it can be mirrored..");
-                if ( core.mirrorReadFile( flashSize ) == false )
-                    return false;
-                core.castMessage("Info: It could! Let's go");
-            }
-        }
-
-        // Core will automatically increment fileSize while mirroring
-        if ( core.fileSize != flashSize ) {
-            core.castMessage("Error: File size does not match expected size");
-            return false;
-        }
-
-        // Notify worker about our intended address range
-        memSpec.size = flashSize;
-        core.setRange( &memSpec );
-
-        // Big endian target so buffer must be swapped
-        core.swapBuffer( 4, core.fileSize );
-
-        core.castMessage("Info: Erasing flash..");
-        if ( driverDemand( 2 ) == false )
-            return false;
-
-        // Set destination address for data
-        if ( !core.queue.send(writeAddressRegister( 0, memSpec.address )) ) {
-            core.castMessage("Error: Could not update destination pointer");
-            return false;
-        }
-
-        core.castMessage("Info: Writing flash..");
-        if ( !core.queue.send(assistFlash(
-                                memSpec.address, memSpec.size,
-                                0x100400, 0x100000, 0x400)) ) {
-            core.castMessage("Error: Flash failed");
-            return false;
-        }
-
-        return core.queue.send(targetReset());
-    }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// WIP
 
     bool writeFlash_mk2( txFamily gen, const target_t *, const memory_t *region ) {
 
@@ -233,28 +72,7 @@ protected:
                 return false;
         }
 
-/*
-        if ( !flash.detect( fID, 0x100000, flashBase ) ) {
-            // Trionic 5 with original flash needs H/V
-            if ( gen != txTrionic5 )
-                return false;
 
-            core.castMessage("Info: This is trionic 5. Testing H/V..");
-
-            core.queue  = writeMemory( 0xFFFC14, 0x0040, sizeWord );
-            core.queue += readMemory( 0xFFFC16, sizeWord  );
-
-            if ( !core.queue.send() ||
-                 !core.getData(hwTemp, TAP_DO_READMEMORY, 2, 0) ||
-                 !core.queue.send( writeMemory( 0xFFFC16, hwTemp[0] | 0x0040, sizeWord )) ) {
-                core.castMessage("Error: Unable to enable H/V");
-                return false;
-            }
-
-            if ( !flash.detect( fID, 0x100000, flashBase ) )
-                return false;
-        }
-*/
 
         // Get address map of this flash
         const flashpart_t *part = pid.getMap( fID.MID, fID.DID, (gen == txTrionic5) ? enWidth8 : enWidth16);
@@ -390,7 +208,7 @@ public:
 
     virtual bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return writeFlash( txGeneric, target, region );
+            return writeFlash_mk2( txGeneric, target, region );
         else if ( region->type == opSRAM )
             return writeSRAM( txGeneric, target, region );
         return false;

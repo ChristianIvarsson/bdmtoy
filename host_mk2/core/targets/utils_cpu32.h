@@ -10,8 +10,8 @@
 #include "partition_helper.h"
 
 // Target drivers
-#include "drivers/CPU32/generic/flash/genflash.h"
-#include "drivers/CPU32/generic/md5/md5.h"
+#include "drivers/CPU32/generic/cpu32_flash.h"
+#include "drivers/CPU32/generic/cpu32_md5.h"
 
 class CPU32_genmd5 : public virtual requests_cpu32 {
     bdmstuff & mdCore;
@@ -521,72 +521,6 @@ public:
         clearFlashParams();
     }
 
-    // Upload flash detection driver and detect flash
-    bool detect(flashid_t &id, uint32_t destination, uint32_t flshbase = 0) {
-        uint16_t idTemp[4];
-        uint16_t status;
-        bool retVal;
-
-        clearFlashParams();
-        driverInited = false;
-        flashBase = flshbase;
-
-        // Upload driver
-        fCore.castMessage("Info: Uploading detect driver..");
-
-        if ( fillDataBE4(destination, genDetect, sizeof(genDetect)) == false ) {
-            fCore.castMessage("Error: Unable to upload driver");
-            return false;
-        }
-
-        fCore.queue  = writeAddressRegister(0, flshbase);
-        fCore.queue += writeSystemRegister(0, destination);
-        fCore.queue += targetStart();
-
-        if ( !fCore.queue.send() ) {
-            fCore.castMessage("Error: detect - Unable to configure and/or start driver");
-            return false;
-        }
-
-        fCore.castMessage("Info: Waiting..");
-
-        do {
-            retVal = fCore.getStatus(&status);
-            sleep_ms(25);
-        } while ( retVal && status == RET_TARGETRUNNING );
-
-        if ( status != RET_TARGETSTOPPED ) {
-            fCore.castMessage("Error: detect - Could not stop target");
-            return false;
-        }
-
-        fCore.castMessage("Info: Retrieving flash info..");
-
-        fCore.queue  = readDataRegister(4); // MID
-        fCore.queue += readDataRegister(5); // DID / PID
-
-        if ( fCore.queue.send() == false ||
-             fCore.getData(&idTemp[0], TAP_DO_READREGISTER, 4, 0) == false || // MID
-             fCore.getData(&idTemp[2], TAP_DO_READREGISTER, 4, 1) == false ){ // DID / PID
-            fCore.castMessage("Error: Unable to retrieve flash information");
-            return false;
-        }
-
-        fCore.castMessage("Info: MID    %04X", idTemp[0]);
-        fCore.castMessage("Info: DID    %04X", idTemp[2]);
-        fCore.castMessage("Info: base %06x", flshbase);
-
-        if ( !getStatus("detect") ) 
-            return false;
-
-        id.MID = idTemp[0];
-        id.DID = idTemp[2];
-
-        flashKnown = true;
-
-        return true;
-    }
-
     bool detect_mk2(flashid_t &id, uint32_t flshbase, eFlashWidth width, uint32_t chipCount = 1) {
         uint32_t idTemp[8];
         const flashpart_t *part;
@@ -700,7 +634,7 @@ public:
         // Upload driver
         fCore.castMessage("Info: Uploading flash driver..");
 
-        if ( fillDataBE4(destination, genDriver, sizeof(genDriver)) == false ) {
+        if ( fillDataBE4(destination, CPU32_flashdriver, sizeof(CPU32_flashdriver)) == false ) {
             fCore.castMessage("Error: Unable to upload driver");
             return false;
         }
