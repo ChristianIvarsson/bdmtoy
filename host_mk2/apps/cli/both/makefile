@@ -3,16 +3,13 @@ CXX=g++
 SIZE=size
 
 APP=debugtool
-# -Wno-error=unused-variable
 
-CFLAGS=-O1 -pthread -Wno-unused-function -Wno-unused-variable 
 CPPFLAGS=-O1 -pthread -Wall -Wpedantic -Werror -std=c++11
 LDFLAGS=-lusb-1.0 -lpthread
 
 ifeq ($(OS),Windows_NT)
 LIBUSBVER=MinGW64
 LDFLAGS+= -m64 -L../shared/libs/win/$(LIBUSBVER)/static
-CFLAGS+= -m64 -I../shared/libs/win/include
 CPPFLAGS+= -m64 -I../shared/libs/win/include
 APP=debugtool.exe
 endif

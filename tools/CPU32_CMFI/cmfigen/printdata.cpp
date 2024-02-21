@@ -4,7 +4,19 @@
 #include <cstdarg>
 #include <cstdlib>
 
-#include "cpu32_cmfi.h"
+#include "../../../host_mk2/core/targets/utils/cpu32/cmfi_cpu32.h"
+
+typedef struct {
+    uint8_t SCLKR; // ( << 11 ) 0 - 7
+    uint8_t CLKPE; // ( <<  8 ) 0 - 3
+    uint8_t CLKPM; // ( <<  0 ) 0 - 127
+} ctl1_t;
+
+typedef struct {
+    uint8_t NVR;   // ( << 11 ) 0 - 1
+    uint8_t PAWS;  // ( <<  8 ) 0 - 7
+    uint8_t GDB;   // ( <<  5 ) 0 - 1
+} tst_t;
 
 // Each blob should be exactly 200 bytes
 
@@ -15,6 +27,15 @@ static const char *SCLKR_text[] = {
     "( 2 )  ",
     "( 3 )  "
 };
+
+static const double SCLKR_lut[] = {
+    1.0,
+    1.0,
+    3.0/2.0,
+    2.0,
+    3.0
+};
+
 
 void printErase( const uint8_t *buf, uint32_t freq ) {
     ctl1_t   ctls[ CPU32_CMFI_MAXOP ] = { 0 };

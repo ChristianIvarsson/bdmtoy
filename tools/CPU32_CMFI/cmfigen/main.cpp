@@ -3,11 +3,32 @@
 #include <cstring>
 #include <cstdarg>
 #include <cstdlib>
-#include <math.h>
 
-#include "cpu32_cmfi.h"
+#include "../../../host_mk2/core/bdmstuff.h"
+#include "../../../host_mk2/core/targets/utils/cpu32/cmfi_cpu32.h"
 
 extern void printData( const uint8_t *buf, uint32_t freq );
+
+class m_stuff : public bdmstuff {
+public:
+    void castProgress(int32_t prog) { 
+        printf("%3d%%\n", prog);
+    }
+    void castMessage(const char *str,...) {
+        char tmp[256];
+        va_list ap;
+        va_start(ap, str);
+        if (vsprintf(tmp, str, ap) > 0)
+            printf("%s\n", tmp);
+        va_end(ap);
+    }
+    ~m_stuff() {
+        printf("m_stuff::~m_stuff()\n");
+    }
+};
+
+m_stuff stuff;
+CPU32_gencmfi cmfi( stuff );
 
 #define OP_VERS    ( enCPU32_CMFI_V61 )
 #define PROC_FREC  ( 245 * 100000 )
@@ -17,13 +38,6 @@ static const char *vNAMES[] = {
     "A51_",
     "A60_",
     "A61_"
-};
-
-const cpu32_cmfi_seq_t *CPU32_CMFI_Data[ enCPU32_CMFI_MAX ] = {
-    &CPU32_CMFI_V50,   // Version 5.0
-    &CPU32_CMFI_V51,   // Version 5.1
-    &CPU32_CMFI_V60,   // Version 6.0
-    &CPU32_CMFI_V61    // Version 6.1
 };
 
 size_t openRead( const char *fName, uint8_t *buf, size_t nBytes ) {
@@ -101,163 +115,6 @@ static const char *getName( cpu32_cmfi_ver ver, uint32_t freq ) {
     return blobName;
 }
 
-static bool genOpData(uint8_t               *buf,
-                      const cpu32_cmfi_op_t *op,
-                      uint32_t               nPulses,
-                      double                 cmfiFreq,
-                      uint32_t               SCLKR,
-                      bool                   erase) {
-
-    uint32_t facOffs = erase ? 15 : 5;
-
-    uint8_t *ctrlBuf  = buf;
-    uint8_t *pawsBuf  = &ctrlBuf [ 36 ];
-    uint8_t *pulseBuf = &pawsBuf [ 18 ];
-    uint8_t *modeBuf  = &pulseBuf[ 18 ];
-    memset( ctrlBuf, 0xff, 72 ); // Default CMFI data to FF
-    memset( modeBuf, 0x00, 10 ); // Default mode data to 00
-
-    typedef struct {
-        uint32_t idx;
-        uint32_t CLKPM;
-        double   match;
-    } comp_t;
-
-    modeBuf[ 10 ] = (nPulses >> 8);
-    modeBuf[ 11 ] =  nPulses;
-
-    for ( uint32_t i = 0; i < CPU32_CMFI_MAXOP; i++ ) {
-
-        double wantedUs = (double)op[ i ].time;
-        comp_t cmpArray[ 5 ];
-
-        // End of sequence
-        if ( wantedUs == 0 )
-            break;
-
-        // Go over every CLOCKPE and find the nearest match
-        for ( uint32_t pe = 0; pe < 4; pe++ ) {
-
-            // Default to ten seconds of delta
-            double lowest = 10000 * 10000;
-            uint32_t CLKPM = 0;
-            uint32_t fac = 1 << (pe + facOffs);
-
-            // Go over every factor and find the nearest for this CLKPE
-            for ( uint32_t pm = 0; pm < 128; pm++ ) {
-                double pTime = (fac * (pm + 1)) / (cmfiFreq / 10000000.0);
-                double delta = fabs(pTime - wantedUs);
-                if ( delta < lowest ) {
-                    CLKPM = pm;
-                    lowest = delta;
-                }
-            }
-            cmpArray[ pe ].idx = pe;
-            cmpArray[ pe ].match = lowest;
-            cmpArray[ pe ].CLKPM = CLKPM;
-        }
-
-        // Sort results
-        bool swapped = true;
-        while ( swapped ) {
-            swapped = false;
-            for ( size_t pe = 0; pe < 3; pe++ ) {
-                if ( cmpArray[ pe + 1 ].match < cmpArray[ pe ].match ) {
-                    cmpArray[ 5 ] = cmpArray[ pe + 1 ];
-                    cmpArray[ pe + 1 ] = cmpArray[ pe ];
-                    cmpArray[ pe ] = cmpArray[ 5 ];
-                    swapped = true;
-                }
-            }
-        }
-
-        // for ( uint32_t pe = 0; pe < 4; pe++ )
-        //     printf("PE %u: %.2f\n", cmpArray[ pe ].idx,  cmpArray[ pe ].match);
-        // printf("Picked index %d\n\n", cmpArray[ 0 ].idx);
-
-        // break;
-        uint32_t CTL = SCLKR << 11 | cmpArray[ 0 ].idx << 8 | cmpArray[ 0 ].CLKPM;
-        CTL <<= 16;
-
-        *ctrlBuf++ = CTL >> 24;
-        *ctrlBuf++ = CTL >> 16;
-        *ctrlBuf++ = CTL >>  8;
-        *ctrlBuf++ = CTL;
-
-        uint32_t TST = op[ i ].testdata.NVR  << 11 |
-                       op[ i ].testdata.PAWS <<  8 |
-                       op[ i ].testdata.GDB  <<  5;
-        *pawsBuf++ = TST >> 8;
-        *pawsBuf++ = TST;
-
-        *pulseBuf++ = op[ i ].pulses >> 8;
-        *pulseBuf++ = op[ i ].pulses;
-
-        modeBuf[ i ] = op[ i ].doMargin ? 0x00 : 0x80;
-    }
-
-    return false;
-};
-
-bool generate( uint8_t *buf, cpu32_cmfi_ver ver, uint32_t freq ) {
-    const cpu32_cmfi_seq_t *seq;
-    uint32_t SCLKR;
-    double cmfiFreq;
-
-    // Motorola specifically mentions < 8 as unstable due to a known design flaw
-    // Officially, they only go to 33 MHz and no data was given for higher frequencies.
-    // At a first glance, it seems they want CMFI to sit between 8 and 12 MHz
-    if ( freq < 8000000 || freq > 33000000 ) {
-        printf("Unsupported frequency %.3f\n", freq / 1000000.0 );
-        return false;
-    }
-
-    if ( ver >= enCPU32_CMFI_MAX ) {
-        printf("Unsupported flash version\n");
-        return false;
-    }
-
-    seq = CPU32_CMFI_Data[ ver ];
-
-    // printf("\n- - - G E N E R A T I N G - - -\n");
-
-    // First, figure out divider
-    // SCLKR 1   8 - 12 MHz    ( 1 )
-    // SCLKR 2  12 - 18 MHz    ( 3 / 2 )
-    // SCLKR 3  18 - 24 MHz    ( 2 )
-    // SCLKR 4  24 - 33 MHz    ( 3 )
-    if ( freq >= 24000000 )
-        SCLKR = 4;
-    else if ( freq >= 18000000 )
-        SCLKR = 3;
-    else if ( freq >= 12000000 )
-        SCLKR = 2;
-    else if ( freq >= 8000000 )
-        SCLKR = 1;
-    else {
-        printf("You should not see this\n");
-        return false;
-    }
-
-    // Convert CPU frequency down to CMFI frequency
-    cmfiFreq = freq / SCLKR_lut[ SCLKR ];
-
-    // printf("CMFI frequency: %.3f MHz ( SCLKR %u )\n\n", cmfiFreq / 1000000.0, SCLKR);
-
-    ////////////////////////////////
-    // Write params
-
-    // Remember to comment out when used hot!
-    // Retain old SYNCR and padding
-    buf += 4;
-
-    genOpData( buf, seq->write, seq->maxWritePulses, cmfiFreq, SCLKR, false);
-
-    genOpData( &buf[88], seq->erase, seq->maxErasePulses, cmfiFreq, SCLKR, true);
-
-    return true;
-}
-
 bool compareAlgos( cpu32_cmfi_ver ver, uint32_t freq ) {
     uint8_t bufA[ 512 ];
     uint8_t bufB[ 512 ];
@@ -276,7 +133,7 @@ bool compareAlgos( cpu32_cmfi_ver ver, uint32_t freq ) {
     memcpy( &bufB[ offset + 88 ], &bufA[ offset + 88 ], 4 );
 
     // Skip past header since we're not using any of that
-    if ( generate( &bufB[ offset ], ver, freq ) == false )
+    if ( cmfi.generate( &bufB[ offset ], ver, freq ) == false )
         return false;
 
     if ( freq < 8000000 || freq > 33000000 ) {
@@ -335,7 +192,7 @@ bool compareAlgos( cpu32_cmfi_ver ver, uint32_t freq ) {
                 return false;;
             }
 
-            double cmfiFreq = freq / SCLKR_lut[ SCLKRa ];
+            double cmfiFreq = freq / CPU32_CMFI_SCLKR_lut[ SCLKRa ];
 
             // These two must be compared by resulting values instead of used values
             uint32_t facA = 1 << ( CLKPEa + facOffset );

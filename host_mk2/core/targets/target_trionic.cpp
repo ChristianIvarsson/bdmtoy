@@ -6,7 +6,7 @@
 #include "../bdmstuff.h"
 #include "targets.h"
 #include "../requests_cpu32.h"
-#include "utils_cpu32.h"
+#include "utils/cpu32/utils_cpu32.h"
 
 enum txFamily : uint32_t {
     txGeneric = 0,

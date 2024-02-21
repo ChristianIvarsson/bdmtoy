@@ -5,7 +5,7 @@
 #include "../bdmstuff.h"
 #include "targets.h"
 #include "../requests_cpu32.h"
-#include "utils_cpu32.h"
+#include "utils/cpu32/utils_cpu32.h"
 
 class iCPU32
     : public cpu32_utils, public virtual requests_cpu32, public iTarget {

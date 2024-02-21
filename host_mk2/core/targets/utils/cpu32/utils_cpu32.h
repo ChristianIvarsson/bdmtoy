@@ -2,16 +2,16 @@
 #define __UTILS_CPU32_H__
 
 // Target-specific driver.. stuff
-#include "../bdmstuff.h"
-#include "../requests_cpu32.h"
-#include "../utils/crypto.h"
+#include "../../../bdmstuff.h"
+#include "../../../requests_cpu32.h"
+#include "../../../utils/crypto.h"
 
-#include "utils_shared.h"
-#include "partition_helper.h"
+#include "../utils_shared.h"
+#include "../../partition_helper.h"
 
 // Target drivers
-#include "drivers/CPU32/generic/cpu32_flash16.h"
-#include "drivers/CPU32/generic/cpu32_md5.h"
+#include "../../drivers/CPU32/generic/cpu32_flash16.h"
+#include "../../drivers/CPU32/generic/cpu32_md5.h"
 
 class CPU32_genmd5 : public virtual requests_cpu32 {
     bdmstuff & mdCore;
@@ -30,6 +30,21 @@ public:
             mdCore.castMessage("Info: Uploading md5 hash driver..");
 
         if ( fillDataBE4(address, CPU32_md5, sizeof(CPU32_md5)) == false ) {
+            mdCore.castMessage("Error: Unable to upload driver");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool upload(const uint8_t *data, size_t nBytes, uint32_t address, bool silent = false) {
+        driverBase = address;
+
+        // Upload driver
+        if ( !silent )
+            mdCore.castMessage("Info: Uploading md5 hash driver..");
+
+        if ( fillDataBE4(address, data, nBytes) == false ) {
             mdCore.castMessage("Error: Unable to upload driver");
             return false;
         }

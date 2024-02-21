@@ -1,17 +1,13 @@
-#ifndef __CPU32_CMFI_H__
-#define __CPU32_CMFI_H__
+#ifndef __CMFI_ALGOS_H__
+#define __CMFI_ALGOS_H__
 
-typedef struct {
-    uint8_t SCLKR; // ( << 11 ) 0 - 7
-    uint8_t CLKPE; // ( <<  8 ) 0 - 3
-    uint8_t CLKPM; // ( <<  0 ) 0 - 127
-} ctl1_t;
+// Private header to cmfi_cpu32.h
 
-typedef struct {
-    uint8_t NVR;   // ( << 11 ) 0 - 1
-    uint8_t PAWS;  // ( <<  8 ) 0 - 7
-    uint8_t GDB;   // ( <<  5 ) 0 - 1
-} tst_t;
+// Known mask sets
+// 8J28H - Version 5.1
+
+// Same as the official driver
+#define CPU32_CMFI_MAXOP    ( 9 )
 
 enum cpu32_cmfi_ver : uint32_t {
     enCPU32_CMFI_V50     = 0,  // CMFI version 5.0
@@ -21,23 +17,18 @@ enum cpu32_cmfi_ver : uint32_t {
     enCPU32_CMFI_MAX     = 4
 };
 
-static const double SCLKR_lut[] = {
-    1.0,
-    1.0,
-    3.0/2.0,
-    2.0,
-    3.0
-};
+typedef struct {
+    uint8_t NVR;   // ( << 11 ) 0 - 1
+    uint8_t PAWS;  // ( <<  8 ) 0 - 7
+    uint8_t GDB;   // ( <<  5 ) 0 - 1
+} cpu32_cmfi_test_t;
 
 typedef struct {
-    const uint32_t time;     // Pulse time in 10 / us
-    const uint32_t pulses;   // Number of pulses
-    const tst_t    testdata; // NVR, GDB and PAWS
-    const bool     doMargin; // Perform margin read after pulse ( For write, this is ignored )
+    const uint32_t          time;     // Pulse time in 10 / us
+    const uint32_t          pulses;   // Number of pulses
+    const cpu32_cmfi_test_t testdata; // NVR, GDB and PAWS
+    const bool              doMargin; // Perform margin read after pulse ( For write, this is ignored )
 } cpu32_cmfi_op_t;
-
-// Same as the official driver
-#define CPU32_CMFI_MAXOP    ( 9 )
 
 typedef struct {
     const uint32_t        maxErasePulses;
@@ -47,11 +38,17 @@ typedef struct {
     const cpu32_cmfi_op_t write[ CPU32_CMFI_MAXOP ];
 } cpu32_cmfi_seq_t;
 
-
+static constexpr const double CPU32_CMFI_SCLKR_lut[] = {
+    1.0,
+    1.0,
+    3.0/2.0,
+    2.0,
+    3.0
+};
 
 //////////////////////////////////////////////////////////////
 // CMFI version 5.0
-static const cpu32_cmfi_seq_t CPU32_CMFI_V50 = {
+static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V50 = {
     // erase
     1,       // Max erase pulses
     {
@@ -68,7 +65,9 @@ static const cpu32_cmfi_seq_t CPU32_CMFI_V50 = {
     }
 };
 
-static const cpu32_cmfi_seq_t CPU32_CMFI_V51 = {
+//////////////////////////////////////////////////////////////
+// CMFI version 5.1 aka 5.0TTO    ( Used in T8 )
+static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V51 = {
     // erase
     1,       // Max erase pulses
     {
@@ -85,9 +84,11 @@ static const cpu32_cmfi_seq_t CPU32_CMFI_V51 = {
 };
 
 
+// Their RM specifically mentions GDB to set for both operations but their own tool says it should be off while programming. Need to investigate!
+
 //////////////////////////////////////////////////////////////
 // CMFI version 6.0
-static const cpu32_cmfi_seq_t CPU32_CMFI_V60 = {
+static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V60 = {
     // erase
     1000,    // Max erase pulses
     {
@@ -119,7 +120,7 @@ static const cpu32_cmfi_seq_t CPU32_CMFI_V60 = {
 
 //////////////////////////////////////////////////////////////
 // CMFI version 6.1
-static const cpu32_cmfi_seq_t CPU32_CMFI_V61 = {
+static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V61 = {
     // erase
     1000,    // Max erase pulses
     {
@@ -148,6 +149,13 @@ static const cpu32_cmfi_seq_t CPU32_CMFI_V61 = {
         { 500            , 1     , { 0  , 7   , 1   } ,  true   }, // 7
         { 1000           , 65535 , { 0  , 7   , 1   } ,  true   }, // 8
     }
+};
+
+static constexpr const cpu32_cmfi_seq_t * const CMFI_Data[ enCPU32_CMFI_MAX ] = {
+    &CPU32_CMFI_V50,   // Version 5.0
+    &CPU32_CMFI_V51,   // Version 5.1 / 5.0TTO
+    &CPU32_CMFI_V60,   // Version 6.0
+    &CPU32_CMFI_V61    // Version 6.1
 };
 
 #endif
