@@ -14,6 +14,7 @@ class CPU32_gencmfi {
 
     bdmstuff & core;
 
+    // This needs some optimising...
     static bool genOpData(uint8_t               *buf,
                           const cpu32_cmfi_op_t *op,
                           uint32_t               nPulses,
@@ -40,23 +41,26 @@ class CPU32_gencmfi {
 
         for ( uint32_t i = 0; i < CPU32_CMFI_MAXOP; i++ ) {
 
-            double wantedUs = (double)op[ i ].time;
+            double wantedUs = op[ i ].time / 10.0;
 
             // End of sequence
-            if ( wantedUs == 0 )
-                break;
+            if ( wantedUs == 0 ) {
+                if ( i > 0 )
+                    break;
+                return false;
+            }
 
             // Go over every CLOCKPE and find the nearest match
             for ( uint32_t pe = 0; pe < 4; pe++ ) {
 
-                // Default to ten seconds of delta
+                // Default to hundred seconds of delta
                 double lowest = 10000 * 10000;
-                uint32_t CLKPM = 0;
+                uint32_t CLKPM = 512;
                 uint32_t fac = 1 << (pe + facOffs);
 
                 // Go over every factor and find the nearest for this CLKPE
                 for ( uint32_t pm = 0; pm < 128; pm++ ) {
-                    double pTime = (fac * (pm + 1)) / (cmfiFreq / 10000000.0);
+                    double pTime = (fac * (pm + 1)) / (cmfiFreq / 1000000.0);
                     double delta = fabs(pTime - wantedUs);
                     if ( delta < lowest ) {
                         CLKPM = pm;
@@ -82,6 +86,10 @@ class CPU32_gencmfi {
                     }
                 }
             }
+
+            // Definitely WAY off the mark!
+            if ( cmpArray[ 0 ].CLKPM == 512 )
+                return false;
 
             uint32_t CTL = SCLKR << 11 | cmpArray[ 0 ].idx << 8 | cmpArray[ 0 ].CLKPM;
             CTL <<= 16;
@@ -142,7 +150,7 @@ public:
         else if ( freq >= 8000000 )
             SCLKR = 1;
         else {
-            core.castMessage("You should not see this\n");
+            core.castMessage("You should not see this");
             return false;
         }
 
@@ -155,12 +163,18 @@ public:
 #ifdef CMFI_COMPARE
         // Retain old SYNCR and padding
         buf += 4;
-        genOpData( buf, seq->write, seq->maxWritePulses, cmfiFreq, SCLKR, false);
-        genOpData( &buf[88], seq->erase, seq->maxErasePulses, cmfiFreq, SCLKR, true);
+        if ( !genOpData( buf, seq->write, seq->maxWritePulses, cmfiFreq, SCLKR, false) ||
+             !genOpData( &buf[88], seq->erase, seq->maxErasePulses, cmfiFreq, SCLKR, true) ) {
+            core.castMessage("Unable to generate CMFI data");
+            return false;
+        }
 #else
         core.castMessage("Info: CMFI at %.3f MHz ( SCLKR %u )", cmfiFreq / 1000000.0, SCLKR);
-        genOpData( buf, seq->write, seq->maxWritePulses, cmfiFreq, SCLKR, false);
-        genOpData( &buf[84], seq->erase, seq->maxErasePulses, cmfiFreq, SCLKR, true);
+        if ( !genOpData( buf, seq->write, seq->maxWritePulses, cmfiFreq, SCLKR, false) ||
+             !genOpData( &buf[84], seq->erase, seq->maxErasePulses, cmfiFreq, SCLKR, true) ) {
+            core.castMessage("Unable to generate CMFI data");
+            return false;
+        }
 #endif
         return true;
     }
