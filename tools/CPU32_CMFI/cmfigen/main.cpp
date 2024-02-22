@@ -30,8 +30,8 @@ public:
 m_stuff stuff;
 CPU32_gencmfi cmfi( stuff );
 
-#define OP_VERS    ( enCPU32_CMFI_V61 )
-#define PROC_FREC  ( 245 * 100000 )
+#define OP_VERS    ( enCPU32_CMFI_V51 )
+#define PROC_FREC  ( 240 * 100000 )
 
 static const char *vNAMES[] = {
     "A50_",
@@ -252,9 +252,8 @@ void checkAll() {
 
 int main(int argc, char *argv[]) {
 
-     checkAll();
+    checkAll();
 
-   
 /*
     uint8_t buffer[ 512 ];
     uint32_t freq = PROC_FREC;
@@ -266,7 +265,7 @@ int main(int argc, char *argv[]) {
     printData( buffer, freq );
 
     // Skip junk in beginning of buffer
-    if (!generate( &buffer[8], OP_VERS, freq ))
+    if (!cmfi.generate( &buffer[8], OP_VERS, freq ))
         return 1;
     printData( buffer, freq );
 */
