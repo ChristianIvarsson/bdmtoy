@@ -33,7 +33,7 @@ MD5asm:
 
     # Simulate command from adapter
     # movea.l  #0x00000000 , a0
-    # move.l   #0x00080004 , d0
+    # move.l   #0x00040000 , d0
     # 0x00080000
     # 0x0007ffff
 
