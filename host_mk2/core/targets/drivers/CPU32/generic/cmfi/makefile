@@ -21,14 +21,8 @@ OBJS=\
 out/entry.o: entry.s
 	@$(AS) $(ASFLAGS) $< -o $@
 
-# We lie a little here. Linker scripts takes over and makes sure entry is first.
-# Not sure what the deal is but it completely ignored _start (or custom names) in the assembler file so it had to be declared somewhere else
-
 out/cmfi.o: cmfi.c
 	@$(CC) $(CFLAGS) $< -c -o $@
-
-
-# 	@$(CC) -o out/$(NAME).elf $^ -mcpu32 -nostdlib -Wl,-s -Wl,-n -Tlink.ld -Wl,-Map=$(basename $@).map
 
 $(NAME) : $(OBJS)
 	@$(CC) -o out/$(NAME).elf $^ -mcpu32 -nostdlib -Tlink.ld -Wl,-Map=out/$(basename $@).map
