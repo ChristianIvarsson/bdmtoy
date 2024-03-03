@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #include "../../../host_mk2/core/bdmstuff.h"
-#include "../../../host_mk2/core/targets/utils/cpu32/cmfi_cpu32.h"
+#include "../../../host_mk2/core/targets/utils/cpu32/priv/cpu32_cmfi.h"
 
 extern void printData( const uint8_t *buf, uint32_t freq );
 

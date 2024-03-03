@@ -4,7 +4,7 @@
 #include <cstdarg>
 #include <cstdlib>
 
-#include "../../../host_mk2/core/targets/utils/cpu32/cmfi_cpu32.h"
+#include "../../../host_mk2/core/targets/utils/cpu32/priv/cpu32_cmfi.h"
 
 typedef struct {
     uint8_t SCLKR; // ( << 11 ) 0 - 7
