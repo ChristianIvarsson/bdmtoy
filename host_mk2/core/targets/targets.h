@@ -163,10 +163,10 @@ static const target_t trionic_8_x = {
     "MC68377, CPU32X",
     typeCPU32,
     nullptr,
-    2,
+    3,
     {
         { opFlash, 0x00000000, 0x00100000 }, // Flash     ( 1M )
-        // { opSRAM,  0x00200000, 0x00008000 }, // SRAM      ( 32k )
+        { opSRAM,  0x00200000, 0x00008000 }, // SRAM      ( 32k )
         { opSRAM,  0x00100000, 0x00001800 }, // DPTRAM    ( 6k )
     }
 };

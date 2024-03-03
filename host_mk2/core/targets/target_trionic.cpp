@@ -493,29 +493,70 @@ public:
         core.queue += targetReady();
         core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
-        core.queue += writeMemory( 0xFFFA27, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
+        core.queue += writeMemory( 0xFFFA00, 0xF14F, sizeWord ); // Module Config register
+
+        // This is actually PortE...
+        // core.queue += writeMemory( 0xFFFA27, 0x0055, sizeByte );
         core.queue += writeMemory( 0xFFFA27, 0x00AA, sizeByte );
-        core.queue += writeMemory( 0xFFFA55, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
-        core.queue += writeMemory( 0xFFFA55, 0x00AA, sizeByte ); 
+        
+        // core.queue += writeMemory( 0xFFFA55, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
+        // core.queue += writeMemory( 0xFFFA55, 0x00AA, sizeByte ); 
+        // core.queue += writeMemory( 0xFFFA55, 0x0055, sizeByte ); // Trigger watchdog once before disabling it
+        // core.queue += writeMemory( 0xFFFA55, 0x00AA, sizeByte ); 
         core.queue += writeMemory( 0xFFFA58, 0x0000, sizeWord ); // SWI - Disable that bastard
         core.queue += writeMemory( 0xFFFA08, 0x0008, sizeWord ); // SYNCR - Set clock bits
         if ( core.queue.send() == false ) return false;
 
-        sleep_ms( 10 );
+        sleep_ms( 50 );
 
         if ( !core.queue.send( writeMemory( 0xFFFA08, 0x6008, sizeWord ) ) )
             return false;
 
+        sleep_ms( 50 );
+
+
+        core.queue  = writeMemory( 0xFFFA7C, 0x0004, sizeWord ); // Flash config
+        core.queue += writeMemory( 0xFFFA4C, 0x0C00, sizeWord ); // Flash config
+        core.queue += writeMemory( 0xFFFA7E, 0xF332, sizeWord ); // Flash config
+
+
+
         core.queue  = writeMemory( 0xFFF6C0, 0x8400, sizeWord );
-        core.queue += writeMemory( 0xFFF680, 0x8000, sizeWord );
+        core.queue += writeMemory( 0xFFFA1F, 0x00ff, sizeByte );
+
+
+        core.queue += writeMemory( 0xFFFA36, 0x5577, sizeWord );
+        core.queue += writeMemory( 0xFFFA35, 0x0030, sizeByte );
+        core.queue += writeMemory( 0xFFFA3B, 0x0000, sizeByte );
+        core.queue += writeMemory( 0xFFFA3C, 0x0000, sizeByte );
+        core.queue += writeMemory( 0xFFFA3A, 0x0004, sizeByte );
+
+
+        // Should be this according to boot but it's crashing..
+
+        // Configure PEPAR at fffa27
+        // 7:6 - 10 = PE[7:5] as FC[2:0]
+        //   5 -  0 ( Reserved )
+        //   4 -  1 = PE4 as clock out
+        //   3 -  1 = PE3 as SIZE/BLOCK
+        //   2 -  1 = PE2 as _AS_  ( Address Strobe )
+        //   1 -  1 = PE1 as _DS_  ( Data Strobe )
+        //   0 -  1 = PE0 as R/_W_ ( Read / _Write_ )
+        // core.queue += writeMemory( 0xFFFA27, 0x009f, sizeByte );
+
+        if ( core.queue.send() == false ) return false;
+
+        core.queue  = writeMemory( 0xFFF680, 0x8000, sizeWord );
         core.queue += writeMemory( 0xFFF680, 0x0000, sizeWord );
         core.queue += writeMemory( 0xFFF684, 0x1000, sizeWord );
+
         if ( core.queue.send() == false ) return false;
 
         config.Frequency = 6000000;
         return core.queue.send( setInterface( config ) );
     }
 };
+
 
 class trionic_8mcp
     : public iTrionic {
