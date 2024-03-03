@@ -30,11 +30,11 @@ public:
 };
 
 class helper_CPU32
-    : public requests_cpu32,
+    : public CPU32_requests,
       public target_helper {
 public:
     explicit helper_CPU32( bdmstuff & m )
-        : requests( m ), requests_cpu32( m ), target_helper( m ) { }
+        : requests( m ), CPU32_requests( m ), target_helper( m ) { }
     ~helper_CPU32() {}
 
     bool printRegisters();

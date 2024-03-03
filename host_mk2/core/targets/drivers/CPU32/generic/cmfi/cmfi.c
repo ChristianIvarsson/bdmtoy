@@ -20,7 +20,7 @@ void serviceWatchdog( void )
 
 uint32_t write( uint16_t  nWords,
                 uint32_t  destination,
-                uint32_t *source )
+                int32_t  *source )
 {
     // Reflects status of the last operation before it gave up or completed what it was doing
     uint32_t status = STATUS_OK;
@@ -101,14 +101,12 @@ uint32_t write( uint16_t  nWords,
     // Negate PROTECT bit
     *regData.CMFIMCR &= ~MCR_PROTECT;
 
-    // Set prelim settings
-
     while ( nDwords != 0 )
     {
         // AND to wrap around shadow data to where it belongs
-        volatile uint32_t *dst = (uint32_t*)(regData.base + (destination & 0x3ffff));
-        uint32_t *cpy = (uint32_t*)dst;
-        uint32_t *sr = source;
+        volatile int32_t *dst = (int32_t*)(regData.base + (destination & 0x3ffff));
+        int32_t *cpy = (int32_t*)dst;
+        int32_t *sr = source;
 
         // Regular partitions are 32 K, shadow 256 B.
         // Since shadow is where it is, this is going to wrap around due to AND 7. - That is, destination >= 4_0000 becomes bit / partition 0 again.
@@ -117,8 +115,8 @@ uint32_t write( uint16_t  nWords,
 
         int32_t  firstOffset = -1;
         uint16_t pulseCnt = 0;
-        uint16_t pulseIdx = 0;
-        uint16_t preventPaws = 0;
+        uint32_t pulseIdx = 0;
+        uint32_t preventPaws = 0;
         uint16_t nextPulseMatch = writeData.pawsProgPulses[ 0 ];
         uint32_t cheapMargin = 1;
         uint32_t verifiedTo = 0;
@@ -152,7 +150,7 @@ uint32_t write( uint16_t  nWords,
         // Fill page buffer
         for ( int16_t i = 0; i < 16; i++ )
         {
-            if ( *sr != 0xffffffff && firstOffset == -1 )
+            if ( *sr != -1 && firstOffset == -1 )
                 firstOffset = i;
 
             *cpy++ = *sr++;

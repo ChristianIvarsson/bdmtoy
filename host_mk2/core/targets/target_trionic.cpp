@@ -17,7 +17,7 @@ enum txFamily : uint32_t {
 };
 
 class iTrionic
-    : public cpu32_utils, public virtual requests_cpu32, public iTarget {
+    : public cpu32_utils, public virtual CPU32_requests, public iTarget {
 
 protected:
 
@@ -195,7 +195,7 @@ protected:
 
 public:
     iTrionic(bdmstuff & p)
-        : requests(p), requests_cpu32(p), cpu32_utils(p) { }
+        : requests(p), CPU32_requests(p), cpu32_utils(p) { }
     ~iTrionic() { }
 
     virtual bool read(const target_t *, const memory_t *mem) {
@@ -220,7 +220,7 @@ class gm_techII
     : public iTrionic {
 public:
     gm_techII(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iTrionic(p) { }
+        : requests(p), CPU32_requests(p), iTrionic(p) { }
     ~gm_techII() { }
 
     bool write( const target_t *target , const memory_t *region ) {
@@ -282,7 +282,7 @@ class trionic_5
     : public iTrionic {
 public:
     trionic_5(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iTrionic(p) { }
+        : requests(p), CPU32_requests(p), iTrionic(p) { }
     ~trionic_5() { }
 
     bool write( const target_t *target , const memory_t *region ) {
@@ -375,7 +375,7 @@ class trionic_7
     : public iTrionic {
 public:
     trionic_7(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iTrionic(p) { }
+        : requests(p), CPU32_requests(p), iTrionic(p) { }
     ~trionic_7() { }
 
     bool write( const target_t *target , const memory_t *region ) {
@@ -466,12 +466,12 @@ class trionic_8
     : public iTrionic {
 public:
     trionic_8(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iTrionic(p) { }
+        : requests(p), CPU32_requests(p), iTrionic(p) { }
     ~trionic_8() { }
 
     bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return genericFlash( enWidth16, 1, target, region );
+            return writeFlash( enWidth16, 1, target, region );
         else if ( region->type == opSRAM )
             return writeSRAM( txTrionic8, target, region );
         return false;
@@ -517,80 +517,60 @@ public:
     }
 };
 
-
 class trionic_8mcp
     : public iTrionic {
 
-        bool setShadow( bool state ) {
-            uint16_t shadowSet;
+    bool dumpMCP( const memory_t *region ) {
 
-            if ( !core.queue.send(readMemory( 0xFFF800, sizeWord )) ||
-                 !core.getData( &shadowSet, TAP_DO_READMEMORY, sizeWord, 0 )) {
-                core.castMessage("Error: Unable to retrieve current shaddow settings");
-                return false;
-            }
+        memory_t memSpec = { opFlash };
 
-            // Return if already in the correct mode
-            if ( ( state && (shadowSet & 0x2000) != 0) ||
-                 (!state && (shadowSet & 0x2000) == 0) )
-                return true;
-
-            if ( state )
-                shadowSet |= 0x2000;
-            else
-                shadowSet &= 0xDFFF;
-
-            if ( !core.queue.send(writeMemory( 0xFFF800, shadowSet, sizeWord )) ) {
-                core.castMessage("Error: Unable to set new shaddow settings");
-                return false;
-            }
-
-            return true;
-        }
-
-        bool dumpMCP() {
-            memory_t memSpec = { opFlash };
-
-            if ( !setShadow( false ) )
-                return false;
-
-            memSpec.size = 0x40000;
-            core.setRange( &memSpec );
-
-            // Dump main portion
-            if ( core.queue.send( assistDump( 0, 0x40000 ) ) == false ) {
-                core.castMessage("Error: Unable to dump main flash");
-                return false;
-            }
-
-            if ( !setShadow( true ) )
-                return false;
-
-            memSpec.size = 256;
-            core.setRange( &memSpec );
-
-            if ( core.queue.send( assistDump( 0, 256 ) ) == false ) {
-                core.castMessage("Error: Unable to dump shadow");
-                return false;
-            }
-
-            return core.swapDump( 4 );
-        }
-
-        bool flashMCP() {
+        if ( region == nullptr ) {
+            core.castMessage("Error: This routine needs to know base address");
             return false;
         }
 
+        if ( region->type != opFlash ) {
+            core.castMessage("Error: This routine only knows how to deal with CMFI");
+            return false;
+        }
+
+        if ( !cmfi.setShadow( false ) )
+            return false;
+
+        memSpec.address = region->address;
+        memSpec.size = 0x40000;
+        core.setRange( &memSpec );
+
+        // Dump main portion
+        if ( core.queue.send( assistDump( 0, 0x40000 ) ) == false ) {
+             core.castMessage("Error: Unable to dump main flash");
+            return false;
+        }
+
+        if ( !cmfi.setShadow( true ) )
+            return false;
+
+        memSpec.size = 256;
+        core.setRange( &memSpec );
+
+        if ( core.queue.send( assistDump( 0, 256 ) ) == false ) {
+            core.castMessage("Error: Unable to dump shadow");
+            return false;
+        }
+
+        return core.swapDump( 4 );
+    }
+
 public:
     trionic_8mcp(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iTrionic(p) { }
+        : requests(p), CPU32_requests(p), iTrionic(p) { }
     ~trionic_8mcp() { }
 
     // MC68F375 is complex with shadow regions and other annoying stuff so the generic stuff won't do
     bool read(const target_t *, const memory_t *mem) {
 
         if ( mem->type == opFlash )
-            return dumpMCP();
+            return dumpMCP( mem );
 
         // Treat everything else as regular reads
         if ( core.queue.send( assistDump( mem->address, mem->size ) ) == false ) {
@@ -604,7 +584,7 @@ public:
     bool write( const target_t *target , const memory_t *region ) {
 
         if ( region->type == opFlash )
-            return flashMCP();
+            return writeCMFI( region, enCPU32_CMFI_V51 );
 
         else if ( region->type == opSRAM )
             return writeSRAM( txTrionic8mcp, target, region );
@@ -617,7 +597,7 @@ public:
         TAP_Config_host_t config;
         uint16_t buf[ 4 ];
 
-        core.castMessage("Info: trionic_8mcp::init");
+        core.castMessage("Info: trionic_8mcp::init()");
 
         config.Type = TAP_IO_BDMOLD;
         config.Frequency = 1000000;
@@ -629,7 +609,12 @@ public:
         core.queue += targetReady();
         core.queue += writeSystemRegister( CPU32_SREG_SFC, 5 );  // Core CPU32 configuration
         core.queue += writeSystemRegister( CPU32_SREG_DFC, 5 );
-        core.queue += writeMemory( 0xFFFA21, 0x0000, sizeByte ); // SYPCR - Set watchdog enable to 0
+        core.queue += writeMemory( 0xFFFA21, 0x0070, sizeByte ); // SYPCR - Set watchdog enable to 0, SWP to 1 and SWT to 3
+        // 24 MHz                                                // Ie crank the divider to 16777216 since it's not listening to the disable signal...
+        //
+        // X: 1
+        // Y: 0
+        // W: 5
         core.queue += writeMemory( 0xFFFA04, 0xD080, sizeWord ); // SYNCR - Set clock bits  (Used to be 0xD084)
         if ( core.queue.send() == false ) return false;
 

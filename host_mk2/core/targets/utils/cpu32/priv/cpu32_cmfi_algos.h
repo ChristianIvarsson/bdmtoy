@@ -38,14 +38,6 @@ typedef struct {
     const cpu32_cmfi_op_t write[ CPU32_CMFI_MAXOP ];
 } cpu32_cmfi_seq_t;
 
-static constexpr const double CPU32_CMFI_SCLKR_lut[] = {
-    1.0,
-    1.0,
-    3.0/2.0,
-    2.0,
-    3.0
-};
-
 //////////////////////////////////////////////////////////////
 // CMFI version 5.0
 static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V50 = {
@@ -53,7 +45,7 @@ static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V50 = {
     1,       // Max erase pulses
     {
         // time 10/us      pulses  { NVR, PAWS, GDB }    Perform margin read
-        { 1000 * 10000   , 65535 , { 0  , 0   , 0   } ,  true   } // 0
+        { 10000 * 1000   , 65535 , { 0  , 0   , 0   } ,  true   } // 0
     },
 
     // write
@@ -84,7 +76,7 @@ static constexpr const cpu32_cmfi_seq_t CPU32_CMFI_V51 = {
 };
 
 
-// Their RM specifically mentions GDB to set for both operations but their own tool says it should be off while programming. Need to investigate!
+// Their RM specifically mentions GDB to set for both operations but their own tool says it should be off while erasing. Need to investigate!
 
 //////////////////////////////////////////////////////////////
 // CMFI version 6.0

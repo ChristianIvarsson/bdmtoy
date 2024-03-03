@@ -8,7 +8,7 @@
 #include "utils/cpu32/utils_cpu32.h"
 
 class iCPU32
-    : public cpu32_utils, public virtual requests_cpu32, public iTarget {
+    : public cpu32_utils, public virtual CPU32_requests, public iTarget {
 
 protected:
     bool writeSRAM( const target_t *, const memory_t *region ) {
@@ -37,7 +37,7 @@ protected:
 
 public:
     iCPU32(bdmstuff & p)
-        : requests(p), requests_cpu32(p), cpu32_utils(p) { }
+        : requests(p), CPU32_requests(p), cpu32_utils(p) { }
     ~iCPU32() { }
 
     virtual bool read(const target_t *, const memory_t *mem) {
@@ -55,12 +55,12 @@ class VolvoS60ACC
     : public iCPU32 {
 public:
     VolvoS60ACC(bdmstuff &p)
-        : requests(p), requests_cpu32(p), iCPU32(p) { }
+        : requests(p), CPU32_requests(p), iCPU32(p) { }
     ~VolvoS60ACC() { }
 
     bool write( const target_t *target , const memory_t *region ) {
         if ( region->type == opFlash )
-            return genericFlash( enWidth16, 1, target, region );
+            return writeFlash( enWidth16, 1, target, region );
         else if ( region->type == opSRAM )
             return writeSRAM( target, region );
         return false;

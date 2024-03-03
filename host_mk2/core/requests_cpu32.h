@@ -27,10 +27,10 @@
 #define CPU32_SREG_SFC   14
 #define CPU32_SREG_DFC   15
 
-class requests_cpu32
+class CPU32_requests
     : public virtual requests {
 public:
-    explicit requests_cpu32(bdmstuff &p)
+    explicit CPU32_requests(bdmstuff &p)
         : requests(p) {}
 
     uint16_t *readSystemRegister(uint16_t Reg) {
